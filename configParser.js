@@ -5,10 +5,10 @@ const fs = require('fs')
 const action = process.argv[2]
 const moduleId = process.argv[3]
 
-let configPath = './config.json'
+let configPath = `${__dirname}/config.json`
 
 if (!fs.existsSync(configPath)) {
-    configPath = './config.default.json'
+    configPath = `${__dirname}/config.default.json`
 }
 
 const config = require(configPath)
