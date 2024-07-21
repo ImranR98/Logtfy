@@ -1,0 +1,12 @@
+[Unit]
+Description=Logtfy
+
+[Service]
+User=1000
+Type=idle
+ExecStart=/bin/bash -c '/var/lib/logtfy/run.sh'
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=multi-user.target

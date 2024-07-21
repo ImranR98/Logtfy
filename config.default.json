@@ -1,0 +1,29 @@
+{
+    "ntfyConfig": {
+        "configs": [
+            {
+                "id": "ntfy_official",
+                "host": "https://ntfy.sh",
+                "authHeader": null,
+                "topicPrefix": "logtfy_"
+            }
+        ],
+        "defaultConfig": "ntfy_official",
+        "fallbackConfig": null
+    },
+    "moduleCustomization": [
+        {
+            "module": "ssh_logins",
+            "disabled": false,
+            "ntfyTopic": null,
+            "ntfyConfig": null,
+            "ntfyFallback": null,
+            "loggerArg": null,
+            "parseArg": null
+        },
+        {
+            "module": "authelia_logins",
+            "disabled": true
+        }
+    ]
+}
