@@ -1,6 +1,6 @@
 # Logtfy
 
-Simple log monitoring services that uses [ntfy](https://ntfy.sh) for alerts.
+Simple log monitoring service that uses [ntfy](https://ntfy.sh) for alerts.
 
 ## Details
 
