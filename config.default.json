@@ -24,6 +24,14 @@
         {
             "module": "authelia_logins",
             "disabled": true
+        },
+        {
+            "module": "traefik_accesslogs",
+            "disabled": true
+        },
+        {
+            "module": "traefik_geoblock_allowed_requests",
+            "disabled": true
         }
     ]
 }
