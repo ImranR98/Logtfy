@@ -4,7 +4,7 @@ Description=Logtfy
 [Service]
 User=1000
 Type=idle
-ExecStart=/bin/bash -c '/var/lib/logtfy/run.sh'
+ExecStart=/bin/bash -l '/var/lib/logtfy/run.sh'
 Restart=on-failure
 RestartSec=60s
 
