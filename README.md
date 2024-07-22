@@ -22,3 +22,6 @@ Simple log monitoring service that uses [ntfy](https://ntfy.sh) for alerts.
      - This includes specifying a different ntfy server (and fallback) to use, customizing the topic name, disabling modules, and adding additional data to use for log collection and parsing.
    - Other details not mentioned - most property names are self-explanatory.
 3. Optionally, create a copy of `onExit.default.sh` named `onExit.sh` and customize it - this file runs when the monitoring script exits for any reason. By default, it will attempt to send a ntfy alert to your configured server.
+4. Launch the service with `run.sh`
+   - Alternatively, you can use the `Dockerfile` to build and run a Docker image.
+   - You can also set it up to run as a systemd service using the example service config file `logtfy.service.example`.
