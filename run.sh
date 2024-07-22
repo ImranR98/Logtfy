@@ -4,6 +4,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 trap "if [ -f "$HERE"/onExit.sh ]; then bash "$HERE"/onExit.sh; else bash "$HERE"/onExit.default.sh; fi; trap - SIGTERM && kill -- -\$\$" EXIT
 
+mkdir -p /tmp/logtfy # Semi-persistent storage used by some modules
 for MODULE_REL_PATH in "$HERE"/modules/*; do
     MODULE_ID="$(basename "$MODULE_REL_PATH")"
     IS_ENABLED="$(node "$HERE"/configParser.js isModuleEnabled "$MODULE_ID")"

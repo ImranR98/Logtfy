@@ -8,7 +8,7 @@ if [ -n "$EXTRA_DATA" ]; then
     NUM_SECONDS_RECALL="$EXTRA_DATA"
 fi
 
-TEMP_LOGS_FILE=/tmp/logtfy_traefik_accesslogs
+TEMP_LOGS_FILE=/tmp/logtfy/traefik_accesslogs
 
 if echo "$LOG_LINE" | grep -q -E '^{.*\}$'; then
     LOG_DATA="$(echo "$LOG_LINE" | jq -r '.time + "~" +.ClientHost + "~" + .RequestAddr')"
