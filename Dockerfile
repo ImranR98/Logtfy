@@ -12,6 +12,7 @@ ENTRYPOINT ["bash", "run.sh"]
 # docker build -t imranrdev/logtfy .
 
 # docker run \
-#    -v /var/run/docker.sock:/var/run/docker.sock # Optional depending on modules used
-#    -v ./config.json /logtfy/config.json
+#    -v /var/log/journal:/var/log/journal:ro \ # For modules that use journalctl
+#    -v /var/run/docker.sock:/var/run/docker.sock \ # For modules that use Docker
+#    -v ./config.json /logtfy/config.json \
 #    -ti imranrdev/logtfy

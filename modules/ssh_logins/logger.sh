@@ -2,4 +2,4 @@
 
 EXTRA_DATA="$1"
 
-/usr/bin/journalctl -fu sshd
+/usr/bin/journalctl -D /var/log/journal -fu sshd
