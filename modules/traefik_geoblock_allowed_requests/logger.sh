@@ -7,4 +7,4 @@ if [ -n "$EXTRA_DATA" ]; then
     CONTAINER_NAME="$EXTRA_DATA"
 fi
 
-/usr/bin/docker logs -f --since 0m "$CONTAINER_NAME"
+/usr/bin/docker logs -f --since 0m "$CONTAINER_NAME" 2>/dev/null
