@@ -3,7 +3,7 @@
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule logtfy)"
-PARSER_OUTPUT="Logtfy exited
+PARSER_OUTPUT="Logtfy on $(hostname -f): Exited
 5
 
 Logtfy has exited. This is unexpected - you may need to check for errors."
