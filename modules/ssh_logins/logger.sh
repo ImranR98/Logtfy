@@ -2,4 +2,9 @@
 
 EXTRA_DATA="$1"
 
-/usr/bin/journalctl -D /var/log/journal -fu sshd
+JOURNALCTL_USER='sshd'
+if [ -n "$EXTRA_DATA" ]; then
+    JOURNALCTL_USER="$EXTRA_DATA"
+fi
+
+/usr/bin/journalctl -D /var/log/journal -fu "$JOURNALCTL_USER"

@@ -18,7 +18,7 @@
             "ntfyTopic": null,
             "ntfyConfig": null,
             "ntfyFallback": null,
-            "loggerArg": null,
+            "loggerArg": "sshd",
             "parseArg": null
         },
         {
