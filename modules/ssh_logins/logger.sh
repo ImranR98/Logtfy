@@ -7,4 +7,4 @@ if [ -n "$EXTRA_DATA" ]; then
     JOURNALCTL_USER="$EXTRA_DATA"
 fi
 
-/usr/bin/journalctl -D /var/log/journal -fu "$JOURNALCTL_USER"
+/usr/bin/journalctl -D /var/log/journal -S now -fu "$JOURNALCTL_USER"
