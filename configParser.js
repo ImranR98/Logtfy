@@ -34,7 +34,10 @@ const getNtfyConfigsForModule = () => {
 
 switch (action) {
     case 'isModuleEnabled':
-        console.log(moduleCustomization.disabled !== true)
+        console.log(
+            moduleCustomization.enabled === true ||
+            (config.ntfyConfig.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
+        )
         break;
     case 'getLoggerArgForModule':
         if (moduleCustomization && moduleCustomization.loggerArg) {

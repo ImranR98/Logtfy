@@ -11,8 +11,16 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
     if [ "$IS_ENABLED" == true ]; then
         LOGGER_EXTRA_DATA="$(node "$HERE"/configParser.js getLoggerArgForModule "$MODULE_ID")"
         PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID")"
-        bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" &
+        (
+            EXITED_CLEANLY=true
+            bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" || EXITED_CLEANLY=false
+            if [ -f "$HERE"/onModuleExit.sh ]; then
+                bash "$HERE"/onModuleExit.sh "$MODULE_ID" "$EXITED_CLEANLY"
+            else
+                bash "$HERE"/onModuleExit.default.sh "$MODULE_ID" "$EXITED_CLEANLY"
+            fi
+        ) &
     fi
 done
 
-wait -n
+wait

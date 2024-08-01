@@ -9,12 +9,13 @@
             }
         ],
         "defaultConfig": "ntfy_official",
-        "fallbackConfig": null
+        "fallbackConfig": null,
+        "modulesEnabledByDefault": false
     },
     "moduleCustomization": [
         {
             "module": "ssh_logins",
-            "disabled": false,
+            "enabled": true,
             "ntfyTopic": null,
             "ntfyConfig": null,
             "ntfyFallback": null,
@@ -22,16 +23,8 @@
             "parseArg": null
         },
         {
-            "module": "authelia_logins",
-            "disabled": true
-        },
-        {
-            "module": "traefik_accesslogs",
-            "disabled": true
-        },
-        {
-            "module": "traefik_geoblock_allowed_requests",
-            "disabled": true
+            "module": "mock_module",
+            "enabled": true
         }
     ]
 }
