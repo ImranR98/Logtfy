@@ -10,7 +10,8 @@
         ],
         "defaultConfig": "ntfy_official",
         "fallbackConfig": null,
-        "modulesEnabledByDefault": false
+        "modulesEnabledByDefault": false,
+        "catchModuleCrashes": false
     },
     "moduleCustomization": [
         {

@@ -39,6 +39,9 @@ switch (action) {
             (config.ntfyConfig.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
         )
         break;
+    case 'shouldCatchModuleCrashes':
+        console.log(config.ntfyConfig.catchModuleCrashes === true)
+        break;
     case 'getLoggerArgForModule':
         if (moduleCustomization && moduleCustomization.loggerArg) {
             console.log(moduleCustomization.loggerArg)

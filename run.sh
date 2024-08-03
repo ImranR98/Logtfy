@@ -23,4 +23,8 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
     fi
 done
 
-wait
+if [ "$(node "$HERE"/configParser.js shouldCatchModuleCrashes)" = true ]; then
+    wait
+else
+    wait -n
+fi
