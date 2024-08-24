@@ -30,7 +30,7 @@
         {
             "module": "traefik_geoblock_allowed_requests_k8s_inside",
             "enabled": false,
-            "//": "NOTE: This module is untested and unfinished (requires additional setup for K8S environment)."
+            "//": "NOTE: This module is untested and unfinished (requires additional setup for K8s environment)."
         }
     ]
 }

@@ -1,2 +1,4 @@
 config.json
 onExit.sh
+k8s/token
+k8s/ca.crt
