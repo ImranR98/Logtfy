@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
 EXTRA_DATA="$1"
 API_SERVER="${KUBE_API_SERVER}" # This should be an env. var.
 
@@ -12,8 +14,8 @@ if [ -z "$SERVICE_NAME" ]; then
     SERVICE_NAME="traefik"
 fi
 
-if [ -f "$HERE"/k8s/token ]; then
-    TOKEN=$(cat "$HERE"/k8s/token)
+if [ -f "$HERE"/../../k8s/token ]; then
+    TOKEN=$(cat "$HERE"/../../k8s/token)
 elif [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
     TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
 else
@@ -21,8 +23,8 @@ else
     exit 1
 fi
 
-if [ -f "$HERE"/k8s/ca.crt ]; then
-    CA_CERT="$HERE"/k8s/ca.crt
+if [ -f "$HERE"/../../k8s/ca.crt ]; then
+    CA_CERT="$HERE"/../../k8s/ca.crt
 elif [ -f /var/run/secrets/kubernetes.io/serviceaccount/ca.crt ]; then
     CA_CERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 else
