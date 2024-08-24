@@ -23,3 +23,11 @@ roleRef:
   kind: Role
   name: logtfy-role
   apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: logtfy-service-account-token
+  annotations:
+    kubernetes.io/service-account.name: logtfy-service-account

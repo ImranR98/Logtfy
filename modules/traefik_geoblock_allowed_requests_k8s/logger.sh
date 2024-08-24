@@ -12,8 +12,23 @@ if [ -z "$SERVICE_NAME" ]; then
     SERVICE_NAME="traefik"
 fi
 
-TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-CA_CERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+if [ -f "$HERE"/k8s/token ]; then
+    TOKEN=$(cat "$HERE"/k8s/token)
+elif [ -f /var/run/secrets/kubernetes.io/serviceaccount/token ]; then
+    TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+else
+    echo "No token file found!" >&2
+    exit 1
+fi
+
+if [ -f "$HERE"/k8s/ca.crt ]; then
+    CA_CERT="$HERE"/k8s/ca.crt
+elif [ -f /var/run/secrets/kubernetes.io/serviceaccount/ca.crt ]; then
+    CA_CERT="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+else
+    echo "No ca.crt file found!" >&2
+    exit 1
+fi
 
 PODS=$(curl -s --header "Authorization: Bearer $TOKEN" \
     --cacert $CA_CERT \
