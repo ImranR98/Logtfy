@@ -8,6 +8,12 @@ if [ "$1" = 'k8s' ]; then # For easy access through the Docker image without clo
     echo "# Put the above script into a file and run it on your K8s control plane. Make the resulting files accessible to Logtfy."
     exit
 fi
+if [ "$1" = 'role' ]; then # For easy access through the Docker image without cloning the repo
+    cat "$HERE"/k8s/role.yaml
+    echo ""
+    echo "# Put the above yaml into a file and run it on your K8s control plane."
+    exit
+fi
 
 trap "if [ -f "$HERE"/onExit.sh ]; then bash "$HERE"/onExit.sh; else bash "$HERE"/onExit.default.sh; fi; trap - SIGTERM && kill -- -\$\$" EXIT
 
