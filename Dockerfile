@@ -7,7 +7,7 @@ RUN apt update && \
 WORKDIR /logtfy
 COPY . /logtfy
 
-ENTRYPOINT ["bash", "run.sh"]
+ENTRYPOINT ["./run.sh"]
 
 # docker build -t imranrdev/logtfy .
 
