@@ -38,6 +38,11 @@ PODS=$(curl -s --header "Authorization: Bearer $TOKEN" \
     "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods?labelSelector=app.kubernetes.io/name=$SERVICE_NAME" |
     jq -r '.items[].metadata.name')
 
+if [ -z "$PODS" ]; then
+    echo "No pods found!" >&2
+    exit 1
+fi
+
 for POD in $PODS; do
     curl -s --header "Authorization: Bearer $TOKEN" \
         --cacert $CA_CERT \
