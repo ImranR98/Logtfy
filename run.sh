@@ -35,13 +35,15 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
             while [ $MAX_FAILS -eq 0 ] || [ $FAIL_COUNT -lt $MAX_FAILS ]; do
                 TEMP_LOG_FILE="$(mktemp)"
                 echo "Running module: $MODULE_STRING..."
-                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" >"$TEMP_LOG_FILE" || EXITED_CLEANLY=false
+                set -o pipefail
+                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" || EXITED_CLEANLY=false
+                set +o pipefail
                 FAIL_COUNT=$((FAIL_COUNT + 1))
                 echo "
 $(printf "%0.s=" $(seq 1 "$(tput cols)"))
 Module '$MODULE_ID' failed $FAIL_COUNT/$MAX_FAILS times. Log tail:
 $(printf "%0.s-" $(seq 1 "$(tput cols)"))
-$(tail "$TEMP_LOG_FILE")
+$(cat "$TEMP_LOG_FILE")
 $(printf "%0.s=" $(seq 1 "$(tput cols)"))
 "
                 rm "$TEMP_LOG_FILE"
