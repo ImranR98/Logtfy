@@ -46,7 +46,7 @@ fi
 for POD in $PODS; do
     curl -s --header "Authorization: Bearer $TOKEN" \
         --cacert $CA_CERT \
-        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true" &
+        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=0" &
 done
 
 wait
