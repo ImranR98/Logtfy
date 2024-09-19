@@ -36,11 +36,14 @@ switch (action) {
     case 'isModuleEnabled':
         console.log(
             moduleCustomization.enabled === true ||
-            (config.ntfyConfig.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
+            (config.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
         )
         break;
     case 'shouldCatchModuleCrashes':
-        console.log(config.ntfyConfig.catchModuleCrashes === true)
+        console.log(config.catchModuleCrashes === true)
+        break;
+    case 'getModuleAllowedFailCount':
+        console.log(config.allowModuleFailCount || 1)
         break;
     case 'getLoggerArgForModule':
         if (moduleCustomization && moduleCustomization.loggerArg) {

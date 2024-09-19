@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
@@ -15,7 +16,7 @@ if [ "$1" = 'role' ]; then # For easy access through the Docker image without cl
     exit
 fi
 
-trap "if [ -f "$HERE"/onExit.sh ]; then bash "$HERE"/onExit.sh; else bash "$HERE"/onExit.default.sh; fi; trap - SIGTERM && kill -- -\$\$" EXIT
+trap "if [ -f "$HERE"/onExit.sh ]; then bash "$HERE"/onExit.sh; else bash "$HERE"/onExit.default.sh; fi; trap - SIGTERM && kill -- -\$\$ 2>/dev/null" EXIT
 
 mkdir -p /tmp/logtfy # Semi-persistent storage used by some modules
 for MODULE_REL_PATH in "$HERE"/modules/*; do
@@ -24,9 +25,27 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
     if [ "$IS_ENABLED" == true ]; then
         LOGGER_EXTRA_DATA="$(node "$HERE"/configParser.js getLoggerArgForModule "$MODULE_ID")"
         PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID")"
+        NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule "$MODULE_ID")"
+        MODULE_STRING="$(node "$HERE"/configParser.js getModuleSummaryString "$MODULE_ID" "$NTFY_CONFIGS")"
+        MAX_FAILS="$(node "$HERE"/configParser.js getModuleAllowedFailCount)"
         (
             EXITED_CLEANLY=true
-            bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" || EXITED_CLEANLY=false
+            FAIL_COUNT=0
+            MAX_FAILS=3
+            while [ $MAX_FAILS -eq 0 ] || [ $FAIL_COUNT -lt $MAX_FAILS ]; do
+                TEMP_LOG_FILE="$(mktemp)"
+                echo "Running module: $MODULE_STRING..."
+                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" >"$TEMP_LOG_FILE" || EXITED_CLEANLY=false
+                FAIL_COUNT=$((FAIL_COUNT + 1))
+                echo "
+$(printf "%0.s=" $(seq 1 "$(tput cols)"))
+Module '$MODULE_ID' failed $FAIL_COUNT/$MAX_FAILS times. Log tail:
+$(printf "%0.s-" $(seq 1 "$(tput cols)"))
+$(tail "$TEMP_LOG_FILE")
+$(printf "%0.s=" $(seq 1 "$(tput cols)"))
+"
+                rm "$TEMP_LOG_FILE"
+            done
             if [ -f "$HERE"/onModuleExit.sh ]; then
                 bash "$HERE"/onModuleExit.sh "$MODULE_ID" "$EXITED_CLEANLY"
             else

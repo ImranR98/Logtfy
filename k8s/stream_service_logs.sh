@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
@@ -46,7 +47,7 @@ fi
 for POD in $PODS; do
     curl -s --header "Authorization: Bearer $TOKEN" \
         --cacert $CA_CERT \
-        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=0" &
+        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=1" &
 done
 
 wait

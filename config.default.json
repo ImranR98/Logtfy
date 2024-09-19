@@ -9,14 +9,15 @@
             }
         ],
         "defaultConfig": "ntfy_official",
-        "fallbackConfig": null,
-        "modulesEnabledByDefault": false,
-        "catchModuleCrashes": false
+        "fallbackConfig": null
     },
+    "modulesEnabledByDefault": false,
+    "catchModuleCrashes": false,
+    "allowModuleFailCount": 3,
     "moduleCustomization": [
         {
             "module": "ssh_logins",
-            "enabled": true,
+            "enabled": false,
             "ntfyTopic": null,
             "ntfyConfig": null,
             "ntfyFallback": null,
@@ -25,11 +26,13 @@
         },
         {
             "module": "mock_module",
-            "enabled": true
+            "enabled": false
         },
         {
             "module": "traefik_geoblock_allowed_requests_k8s",
-            "enabled": false
+            "loggerArg": "production",
+            "ntfyTopic": "logtfy",
+            "enabled": true
         }
     ]
 }

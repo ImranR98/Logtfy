@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 
 LOG_LINE="$1"
 EXTRA_DATA="$2"
