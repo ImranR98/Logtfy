@@ -21,12 +21,12 @@ IS_FAILING=false
 while [ true ]; do
     if ! nc -vz "$HOST" "$PORT" 2>&1; then
         if [ "$IS_FAILING" == false ]; then
-            echo "Port Checker on $(hostname -f): Port $PORT on $HOST is closed!"
+            echo "Port $PORT on $HOST is closed!"
             IS_FAILING=true
         fi
     else
         if [ "$IS_FAILING" == true ]; then
-            echo "Port Checker on $(hostname -f): Port $PORT on $HOST is open!"
+            echo "Port $PORT on $HOST is open!"
             IS_FAILING=false
         fi
     fi
