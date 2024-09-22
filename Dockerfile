@@ -1,7 +1,7 @@
 FROM node:latest
 
 RUN apt update && \
-    apt install -qy curl jq && \
+    apt install -qy curl jq netcat-openbsd && \
     curl -sSL https://get.docker.com/ | sh
 
 WORKDIR /logtfy
@@ -19,3 +19,5 @@ ENTRYPOINT ["./run.sh"]
 #    -e "KUBE_API_SERVER=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')"
 #    -v ./config.json:/logtfy/config.json \
 #    -ti imranrdev/logtfy
+
+# docker run -v ./config.json:/logtfy/config.json -ti imranrdev/logtfy
