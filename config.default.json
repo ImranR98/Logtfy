@@ -22,7 +22,7 @@
             "ntfyConfig": null,
             "ntfyFallback": null,
             "loggerArg": "sshd",
-            "parseArg": null
+            "parserArg": null
         },
         {
             "module": "mock_module",
