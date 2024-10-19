@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+
 EXTRA_DATA="$1"
 
 CONTAINER_NAME='authelia'
@@ -8,4 +10,4 @@ if [ -n "$EXTRA_DATA" ]; then
     CONTAINER_NAME="$EXTRA_DATA"
 fi
 
-/usr/bin/docker logs -f --since 0m "$CONTAINER_NAME"
+source "$HERE"/../../helpers/stream_docker_logs.sh "$CONTAINER_NAME
