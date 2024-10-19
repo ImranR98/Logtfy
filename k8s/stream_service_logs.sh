@@ -6,7 +6,11 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 EXTRA_DATA="$1"
 API_SERVER="${KUBE_API_SERVER}" # This should be an env. var.
 
-read SERVICE_NAME NAMESPACE <<< "$EXTRA_DATA"
+if [ -z "$API_SERVER" ]; then # Only works outside of K8s
+    API_SERVER="https://$(kubectl -n kube-system get pod -l component=kube-apiserver -o=jsonpath="{.items[0].metadata.annotations.kubeadm\.kubernetes\.io/kube-apiserver\.advertise-address\.endpoint}")"
+fi
+
+read SERVICE_NAME NAMESPACE <<<"$EXTRA_DATA"
 
 if [ -z "$SERVICE_NAME" ]; then
     echo "Service name not specified!" >&2
