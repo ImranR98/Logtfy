@@ -9,4 +9,5 @@ if [ -z "$SERVICE_NAME" ]; then
     SERVICE_NAME=syncthing
 fi
 
-source "$HERE"/../../k8s/stream_service_logs.sh "$SERVICE_NAME $NAMESPACE"
+script -q -c "bash \"$HERE\"/../../k8s/stream_service_logs.sh \"$SERVICE_NAME $NAMESPACE\"" /dev/stdout
+# Syncthing seems to send logs weirdly (unclear what's going on but they don't go to stdout/stderr) - using 'script' fixes this
