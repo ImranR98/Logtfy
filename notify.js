@@ -37,17 +37,18 @@ async function postData(url, data, headers = {}) {
 
 const moduleId = process.argv[2]
 const parserOutputRaw = process.argv[3].split('\n')
+const ntfyConfigs = JSON.parse(process.argv[4])
+const defaultPriority = process.argv[5] || ''
+const defaultTags = process.argv[6] || ''
 const parserOutput = {
     title: parserOutputRaw[0] || 'Logtfy Alert',
-    priority: parserOutputRaw[1] || '',
-    tags: parserOutputRaw[2] || '',
+    priority: parserOutputRaw[1].length > 0 ? parserOutputRaw[1] : defaultPriority,
+    tags: parserOutputRaw[2].length > 0 ? parserOutputRaw[2] : defaultTags,
     message: parserOutputRaw.slice(3).join('\n')
 }
 if (parserOutput.message.length == 0) {
     parserOutput.message = 'No message specified.'
 }
-const ntfyConfigs = JSON.parse(process.argv[4])
-
 
 const main = async () => {
     let didPost = false

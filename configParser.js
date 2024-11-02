@@ -62,6 +62,16 @@ switch (action) {
         const ntfyConfigs = process.argv[4] ? JSON.parse(process.argv[4]) : getNtfyConfigsForModule()
         console.log(`'${moduleId}' to ${ntfyConfigs.map(c => `'${c.host}/${c.topic}'`).join(' or ')}`)
         break;
+    case 'getDefaultPriorityForModule':
+        if (moduleCustomization && moduleCustomization.defaultPriority) {
+            console.log(moduleCustomization.defaultPriority)
+        }
+        break;
+    case 'getDefaultTagsForModule':
+        if (moduleCustomization && moduleCustomization.defaultTags) {
+            console.log(moduleCustomization.defaultTags)
+        }
+        break;
     default:
         console.error(`Unknown action '${action}'!`)
         process.exit(1)

@@ -26,13 +26,15 @@
         },
         {
             "module": "mock_module",
-            "enabled": false
+            "defaultPriority": "4",
+            "defaultTags": "computer,tada",
+            "enabled": true
         },
         {
             "module": "traefik_geoblock_allowed_requests_k8s",
             "loggerArg": "production",
             "ntfyTopic": "logtfy",
-            "enabled": true
+            "enabled": false
         }
     ]
 }

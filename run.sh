@@ -27,6 +27,8 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
         PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID")"
         NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule "$MODULE_ID")"
         MODULE_STRING="$(node "$HERE"/configParser.js getModuleSummaryString "$MODULE_ID" "$NTFY_CONFIGS")"
+        DEFAULT_PRIORITY="$(node "$HERE"/configParser.js getDefaultPriorityForModule "$MODULE_ID")"
+        DEFAULT_TAGS="$(node "$HERE"/configParser.js getDefaultTagsForModule "$MODULE_ID")"
         MAX_FAILS="$(node "$HERE"/configParser.js getModuleAllowedFailCount)"
         (
             EXITED_CLEANLY=true
@@ -36,7 +38,7 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
                 TEMP_LOG_FILE="$(mktemp)"
                 echo "Running module: $MODULE_STRING..."
                 set -o pipefail
-                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" || EXITED_CLEANLY=false
+                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || EXITED_CLEANLY=false
                 set +o pipefail
                 FAIL_COUNT=$((FAIL_COUNT + 1))
                 echo "
