@@ -42,11 +42,11 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
                 set +o pipefail
                 FAIL_COUNT=$((FAIL_COUNT + 1))
                 echo "
-$(printf "%0.s=" $(seq 1 "$(tput cols)"))
+$(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
 Module '$MODULE_ID' failed $FAIL_COUNT/$MAX_FAILS times. Log tail:
-$(printf "%0.s-" $(seq 1 "$(tput cols)"))
+$(printf "%0.s-" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
 $(cat "$TEMP_LOG_FILE")
-$(printf "%0.s=" $(seq 1 "$(tput cols)"))
+$(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
 "
                 rm "$TEMP_LOG_FILE"
             done
