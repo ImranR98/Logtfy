@@ -10,4 +10,4 @@ if [ -n "$EXTRA_DATA" ]; then
     CONTAINER_NAME="$EXTRA_DATA"
 fi
 
-source "$HERE"/../../helpers/stream_docker_logs.sh "$CONTAINER_NAME"
+source "$HERE"/../../helpers/stream_docker_logs.sh "$CONTAINER_NAME" stderr2stdout
