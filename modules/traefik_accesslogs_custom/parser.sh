@@ -10,9 +10,15 @@ if [ -z "$LINE_MATCH_PATTERN" ]; then
 fi
 
 if echo "$LOG_LINE" | grep -q "$LINE_MATCH_PATTERN"; then
-    NOTIF_IP="$(echo "$LOG_LINE" | awk '{print $1}')"
-    NOTIF_DATE_TIME="$(echo "$LOG_LINE" | awk '{print $4}' | tail -c +2)"
-    NOTIF_DATA="$(echo "$LOG_LINE" | cut -d ' ' -f 6-)"
+    if echo "$LOG_LINE" | jq -e . >/dev/null 2>&1; then
+        NOTIF_IP="$(echo "$LOG_LINE" | jq -r '.ClientAddr // empty')"
+        NOTIF_DATE_TIME="$(echo "$LOG_LINE" | jq -r '.StartUTC // empty')"
+        NOTIF_DATA="$(echo "$LOG_LINE" | jq -r '"\(.RequestMethod // "-") \(.RequestHost // "-")\(.RequestPath // "") -> \(.DownstreamStatus // "-")"')"
+    else
+        NOTIF_IP="$(echo "$LOG_LINE" | awk '{print $1}')"
+        NOTIF_DATE_TIME="$(echo "$LOG_LINE" | awk '{print $4}' | tail -c +2)"
+        NOTIF_DATA="$(echo "$LOG_LINE" | cut -d ' ' -f 6-)"
+    fi
     echo "Traefik Access Alert on $(hostname -f)
 
 
