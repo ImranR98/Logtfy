@@ -39,9 +39,6 @@ switch (action) {
             (config.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
         )
         break;
-    case 'shouldCatchModuleCrashes':
-        console.log(config.catchModuleCrashes === true)
-        break;
     case 'getModuleAllowedFailCount':
         console.log(config.allowModuleFailCount || 1)
         break;

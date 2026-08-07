@@ -10,12 +10,24 @@ TAIL_TO_FILE="$5"
 DEFAULT_PRIORITY="$6"
 DEFAULT_TAGS="$7"
 
-bash "$HERE"/modules/"$MODULE_ID"/logger.sh "$LOGGER_EXTRA_DATA" | while read -r log; do
+LOGGER_PIPE="$(mktemp -u)"
+mkfifo "$LOGGER_PIPE"
+trap "rm -f '$LOGGER_PIPE'" EXIT
+
+bash "$HERE"/modules/"$MODULE_ID"/logger.sh "$LOGGER_EXTRA_DATA" > "$LOGGER_PIPE" &
+LOGGER_PID=$!
+
+while read -r log; do
     echo "$log" >> "$TAIL_TO_FILE"
-    TAIL="$(tail "$TAIL_TO_FILE")"
-    echo "$TAIL" > "$TAIL_TO_FILE"
-    PARSER_OUTPUT="$(bash "$HERE"/modules/"$MODULE_ID"/parser.sh "$log" "$PARSER_EXTRA_DATA")"
+    tail "$TAIL_TO_FILE" > "$TAIL_TO_FILE"
+    PARSER_OUTPUT="$(bash "$HERE"/modules/"$MODULE_ID"/parser.sh "$log" "$PARSER_EXTRA_DATA" || true)"
     if [ -n "$PARSER_OUTPUT" ]; then
-        node "$HERE"/notify.js "$MODULE_ID" "$PARSER_OUTPUT" "$NTFY_CONFIGS" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || : # Don't crash everything if a notif fails to send
+        node "$HERE"/notify.js "$MODULE_ID" "$PARSER_OUTPUT" "$NTFY_CONFIGS" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || :
     fi
-done
+done < "$LOGGER_PIPE"
+
+wait $LOGGER_PID
+LOGGER_EXIT=$?
+rm -f "$LOGGER_PIPE"
+trap - EXIT
+exit $LOGGER_EXIT

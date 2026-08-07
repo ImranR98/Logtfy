@@ -33,13 +33,20 @@ for MODULE_REL_PATH in "$HERE"/modules/*; do
         (
             EXITED_CLEANLY=true
             FAIL_COUNT=0
-            MAX_FAILS=3
+            BACKOFF_SECS=60
+            MAX_BACKOFF=3600
+            START_TIME="$(date +%s)"
+
             while [ $MAX_FAILS -eq 0 ] || [ $FAIL_COUNT -lt $MAX_FAILS ]; do
                 TEMP_LOG_FILE="$(mktemp)"
+                ITER_START="$(date +%s)"
                 echo "Running module: $MODULE_STRING..."
-                set -o pipefail
                 bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || EXITED_CLEANLY=false
-                set +o pipefail
+                RUNTIME=$(($(date +%s) - ITER_START))
+                if [ $RUNTIME -gt 30 ]; then
+                    FAIL_COUNT=0
+                    BACKOFF_SECS=1
+                fi
                 FAIL_COUNT=$((FAIL_COUNT + 1))
                 echo "
 $(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
@@ -49,6 +56,15 @@ $(cat "$TEMP_LOG_FILE")
 $(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
 "
                 rm "$TEMP_LOG_FILE"
+                if [ $MAX_FAILS -ne 0 ] && [ $FAIL_COUNT -ge $MAX_FAILS ]; then
+                    break
+                fi
+                echo "Restarting module '$MODULE_ID' in ${BACKOFF_SECS}s..."
+                sleep $BACKOFF_SECS
+                BACKOFF_SECS=$((BACKOFF_SECS * 2))
+                if [ $BACKOFF_SECS -gt $MAX_BACKOFF ]; then
+                    BACKOFF_SECS=$MAX_BACKOFF
+                fi
             done
             if [ -f "$HERE"/onModuleExit.sh ]; then
                 bash "$HERE"/onModuleExit.sh "$MODULE_ID" "$EXITED_CLEANLY"
@@ -59,8 +75,4 @@ $(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
     fi
 done
 
-if [ "$(node "$HERE"/configParser.js shouldCatchModuleCrashes)" = true ]; then
-    wait
-else
-    wait -n
-fi
+wait

@@ -12,7 +12,6 @@
         "fallbackConfig": null
     },
     "modulesEnabledByDefault": false,
-    "catchModuleCrashes": false,
     "allowModuleFailCount": 3,
     "moduleCustomization": [
         {
