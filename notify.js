@@ -2,22 +2,12 @@ const https = require('https')
 
 async function postData(url, data, headers = {}) {
     return new Promise((resolve, reject) => {
-        const urlObject = new URL(url)
-        const options = {
-            hostname: urlObject.hostname,
-            port: urlObject.port || 443,
-            path: urlObject.pathname + urlObject.search,
+        const req = https.request(url, {
             method: 'POST',
-            headers: {
-                'Content-Length': Buffer.byteLength(data),
-                ...headers
-            }
-        }
-        const req = https.request(options, (res) => {
+            headers: { 'Content-Length': Buffer.byteLength(data), ...headers }
+        }, (res) => {
             let responseData = ''
-            res.on('data', (chunk) => {
-                responseData += chunk
-            })
+            res.on('data', (chunk) => { responseData += chunk })
             res.on('end', () => {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     resolve(responseData)
@@ -26,62 +16,40 @@ async function postData(url, data, headers = {}) {
                 }
             })
         })
-        req.on('error', (e) => {
-            reject(e)
-        })
+        req.on('error', reject)
         req.write(data)
         req.end()
     })
 }
 
-
 const moduleId = process.argv[2]
-const parserOutputRaw = process.argv[3].split('\n')
+const parserOutputRaw = (process.argv[3] || '').split('\n')
 const ntfyConfigs = JSON.parse(process.argv[4])
 const defaultPriority = process.argv[5] || ''
 const defaultTags = process.argv[6] || ''
 const parserOutput = {
     title: parserOutputRaw[0] || 'Logtfy Alert',
-    priority: parserOutputRaw[1].length > 0 ? parserOutputRaw[1] : defaultPriority,
-    tags: parserOutputRaw[2].length > 0 ? parserOutputRaw[2] : defaultTags,
-    message: parserOutputRaw.slice(3).join('\n')
-}
-if (parserOutput.message.length == 0) {
-    parserOutput.message = 'No message specified.'
+    priority: (parserOutputRaw[1] || '').length > 0 ? parserOutputRaw[1] : defaultPriority,
+    tags: (parserOutputRaw[2] || '').length > 0 ? parserOutputRaw[2] : defaultTags,
+    message: parserOutputRaw.slice(3).join('\n') || 'No message specified.'
 }
 
 const main = async () => {
-    let didPost = false
-    for (let i = 0; i < ntfyConfigs.length && !didPost; i++) {
+    for (const config of ntfyConfigs) {
         try {
-            const headers = {
-                'Content-Type': 'text/plain',
-                'Title': parserOutput.title,
-            }
-            if (parserOutput.priority.length > 0) {
-                headers['Priority'] = parserOutput.priority.toString()
-            }
-            if (parserOutput.tags.length > 0) {
-                headers['Tags'] = parserOutput.tags.toString()
-            }
-            if (ntfyConfigs[i].authHeader) {
-                headers['Authorization'] = ntfyConfigs[i].authHeader
-            }
-            const result = await postData(
-                `${ntfyConfigs[i].host}/${ntfyConfigs[i].topic}`,
-                parserOutput.message,
-                headers
-            )
+            const headers = { 'Content-Type': 'text/plain', 'Title': parserOutput.title }
+            if (parserOutput.priority.length > 0) headers['Priority'] = parserOutput.priority
+            if (parserOutput.tags.length > 0) headers['Tags'] = parserOutput.tags
+            if (config.authHeader) headers['Authorization'] = config.authHeader
+            const result = await postData(`${config.host}/${config.topic}`, parserOutput.message, headers)
             console.log(result)
-            didPost = true
+            return
         } catch (e) {
-            console.warn(`WARNING: Could not post notification for module '${moduleId}' with ntfy config ${ntfyConfigs[i].id}!`)
+            console.warn(`WARNING: Could not post notification for module '${moduleId}' with ntfy config ${config.id}!`)
             console.warn(e)
         }
     }
-    if (!didPost) {
-        throw new Error(`ERROR: Could not post notification for module '${moduleId}'! Parsed log: ${JSON.stringify(parserOutput)}`)
-    }
+    throw new Error(`ERROR: Could not post notification for module '${moduleId}'!`)
 }
 
 main().catch(e => {

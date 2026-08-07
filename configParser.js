@@ -1,26 +1,22 @@
-// 3 args: config filename, desired action (validate or getProp), prop to get
-
 const fs = require('fs')
 
 const action = process.argv[2]
 const moduleId = process.argv[3]
 
 let configPath = `${__dirname}/config.json`
-
 if (!fs.existsSync(configPath)) {
     configPath = `${__dirname}/config.default.json`
 }
-
 const config = require(configPath)
 
-const moduleCustomization = config.moduleCustomization.filter(c => c.module === moduleId)[0] ?? {}
+const moduleCustomization = config.moduleCustomization.find(c => c.module === moduleId) ?? {}
 
 const getNtfyConfigsForModule = () => {
-    const moduleTopic = (moduleCustomization && moduleCustomization.ntfyTopic) || moduleId
-    const mainConfigName = (moduleCustomization && moduleCustomization.ntfyConfig) || config.ntfyConfig.defaultConfig
-    const fallBackConfigName = (moduleCustomization && moduleCustomization.ntfyFallback) || config.ntfyConfig.fallbackConfig
-    const mainConfig = mainConfigName && config.ntfyConfig.configs.filter(c => c.id === mainConfigName)[0]
-    const fallbackConfig = fallBackConfigName && mainConfigName != fallBackConfigName && config.ntfyConfig.configs.filter(c => c.id === fallBackConfigName)[0]
+    const moduleTopic = moduleCustomization.ntfyTopic || moduleId
+    const mainConfigName = moduleCustomization.ntfyConfig || config.ntfyConfig.defaultConfig
+    const fallbackConfigName = moduleCustomization.ntfyFallback || config.ntfyConfig.fallbackConfig
+    const mainConfig = mainConfigName && config.ntfyConfig.configs.find(c => c.id === mainConfigName)
+    const fallbackConfig = fallbackConfigName && mainConfigName !== fallbackConfigName && config.ntfyConfig.configs.find(c => c.id === fallbackConfigName)
     if (!mainConfig) {
         console.error(`Could not determine main ntfy config for module '${moduleId}'!`)
         process.exit(1)
@@ -32,6 +28,12 @@ const getNtfyConfigsForModule = () => {
     return finalConfigs
 }
 
+const getModuleProp = (key) => {
+    if (moduleCustomization[key]) {
+        console.log(moduleCustomization[key])
+    }
+}
+
 switch (action) {
     case 'isModuleEnabled':
         console.log(
@@ -39,18 +41,17 @@ switch (action) {
             (config.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
         )
         break;
-    case 'getModuleAllowedFailCount':
-        console.log(config.allowModuleFailCount || 1)
+    case 'getCrashNotificationInitialBackoffSeconds':
+        console.log(config.crashNotificationInitialBackoffSeconds || 60)
+        break;
+    case 'getCrashNotificationMaxBackoffSeconds':
+        console.log(config.crashNotificationMaxBackoffSeconds || 3600)
         break;
     case 'getLoggerArgForModule':
-        if (moduleCustomization && moduleCustomization.loggerArg) {
-            console.log(moduleCustomization.loggerArg)
-        }
+        getModuleProp('loggerArg')
         break;
     case 'getParserArgForModule':
-        if (moduleCustomization && moduleCustomization.parserArg) {
-            console.log(moduleCustomization.parserArg)
-        }
+        getModuleProp('parserArg')
         break;
     case 'getNtfyConfigsForModule':
         console.log(JSON.stringify(getNtfyConfigsForModule()))
@@ -60,14 +61,10 @@ switch (action) {
         console.log(`'${moduleId}' to ${ntfyConfigs.map(c => `'${c.host}/${c.topic}'`).join(' or ')}`)
         break;
     case 'getDefaultPriorityForModule':
-        if (moduleCustomization && moduleCustomization.defaultPriority) {
-            console.log(moduleCustomization.defaultPriority)
-        }
+        getModuleProp('defaultPriority')
         break;
     case 'getDefaultTagsForModule':
-        if (moduleCustomization && moduleCustomization.defaultTags) {
-            console.log(moduleCustomization.defaultTags)
-        }
+        getModuleProp('defaultTags')
         break;
     default:
         console.error(`Unknown action '${action}'!`)

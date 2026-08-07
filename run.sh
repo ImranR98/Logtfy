@@ -3,75 +3,134 @@ set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
-if [ "$1" = 'k8s' ]; then # For easy access through the Docker image without cloning the repo
+if [ "$1" = 'k8s' ]; then
     cat "$HERE"/k8s/prep.sh
     echo ""
     echo "# Put the above script into a file and run it on your K8s control plane. Make the resulting files accessible to Logtfy."
     exit
 fi
-if [ "$1" = 'role' ]; then # For easy access through the Docker image without cloning the repo
+if [ "$1" = 'role' ]; then
     cat "$HERE"/k8s/role.yaml
     echo ""
     echo "# Put the above yaml into a file and run it on your K8s control plane."
     exit
 fi
 
-trap "if [ -f "$HERE"/onExit.sh ]; then bash "$HERE"/onExit.sh; else bash "$HERE"/onExit.default.sh; fi; trap - SIGTERM && kill -- -\$\$ 2>/dev/null" EXIT
+MODULE_PIDS=()
 
-mkdir -p /tmp/logtfy # Semi-persistent storage used by some modules
+shutdown() {
+    if [ -f "$HERE"/onExit.sh ]; then
+        bash "$HERE"/onExit.sh
+    fi
+    for pid in "${MODULE_PIDS[@]}"; do
+        kill "$pid" 2>/dev/null
+        wait "$pid" 2>/dev/null
+    done
+    exit 0
+}
+trap shutdown SIGTERM SIGINT EXIT
+
+mkdir -p /tmp/logtfy
+
+NOTIFY_INITIAL="$(node "$HERE"/configParser.js getCrashNotificationInitialBackoffSeconds)"
+NOTIFY_MAX="$(node "$HERE"/configParser.js getCrashNotificationMaxBackoffSeconds)"
+
 for MODULE_REL_PATH in "$HERE"/modules/*; do
     MODULE_ID="$(basename "$MODULE_REL_PATH")"
     IS_ENABLED="$(node "$HERE"/configParser.js isModuleEnabled "$MODULE_ID")"
-    if [ "$IS_ENABLED" == true ]; then
+    if [ "$IS_ENABLED" = true ]; then
         LOGGER_EXTRA_DATA="$(node "$HERE"/configParser.js getLoggerArgForModule "$MODULE_ID")"
         PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID")"
         NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule "$MODULE_ID")"
         MODULE_STRING="$(node "$HERE"/configParser.js getModuleSummaryString "$MODULE_ID" "$NTFY_CONFIGS")"
         DEFAULT_PRIORITY="$(node "$HERE"/configParser.js getDefaultPriorityForModule "$MODULE_ID")"
         DEFAULT_TAGS="$(node "$HERE"/configParser.js getDefaultTagsForModule "$MODULE_ID")"
-        MAX_FAILS="$(node "$HERE"/configParser.js getModuleAllowedFailCount)"
         (
-            EXITED_CLEANLY=true
-            FAIL_COUNT=0
-            BACKOFF_SECS=60
-            MAX_BACKOFF=3600
-            START_TIME="$(date +%s)"
+            set +e
 
-            while [ $MAX_FAILS -eq 0 ] || [ $FAIL_COUNT -lt $MAX_FAILS ]; do
+            cleanup() {
+                node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Container Kill
+5
+$DEFAULT_TAGS
+The '$MODULE_ID' module stopped because the container was killed." "$NTFY_CONFIGS" || true
+            }
+            trap cleanup EXIT
+
+            node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Module Started
+3
+$DEFAULT_TAGS
+The '$MODULE_ID' module has started." "$NTFY_CONFIGS" || true
+
+            RESTART_DELAY=5
+            STABLE_THRESHOLD=60
+            notify_interval=$NOTIFY_INITIAL
+            last_notify=0
+            first_run=true
+
+            while true; do
                 TEMP_LOG_FILE="$(mktemp)"
                 ITER_START="$(date +%s)"
                 echo "Running module: $MODULE_STRING..."
-                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || EXITED_CLEANLY=false
+
+                if [ "$first_run" = true ] || [ "$last_notify" -ne 0 ]; then
+                    (
+                        sleep "$STABLE_THRESHOLD"
+                        node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Stable
+3
+$DEFAULT_TAGS
+The '$MODULE_ID' module is stable after ${STABLE_THRESHOLD}s of uptime." "$NTFY_CONFIGS" || true
+                    ) &
+                    WATCHDOG_PID=$!
+                else
+                    WATCHDOG_PID=0
+                fi
+
+                bash "$HERE"/runModule.sh "$MODULE_ID" "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" "$NTFY_CONFIGS" "$TEMP_LOG_FILE" "$DEFAULT_PRIORITY" "$DEFAULT_TAGS" || true
                 RUNTIME=$(($(date +%s) - ITER_START))
-                if [ $RUNTIME -gt 30 ]; then
-                    FAIL_COUNT=0
-                    BACKOFF_SECS=1
+
+                if [ "$WATCHDOG_PID" -ne 0 ]; then
+                    kill "$WATCHDOG_PID" 2>/dev/null
+                    wait "$WATCHDOG_PID" 2>/dev/null
                 fi
-                FAIL_COUNT=$((FAIL_COUNT + 1))
-                echo "
-$(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
-Module '$MODULE_ID' failed $FAIL_COUNT/$MAX_FAILS times. Log tail:
-$(printf "%0.s-" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
-$(cat "$TEMP_LOG_FILE")
-$(printf "%0.s=" $(seq 1 "$(tput cols 2>/dev/null || echo 10)"))
-"
-                rm "$TEMP_LOG_FILE"
-                if [ $MAX_FAILS -ne 0 ] && [ $FAIL_COUNT -ge $MAX_FAILS ]; then
-                    break
+
+                printf '=%.0s' $(seq 1 60); echo
+                echo "Module '$MODULE_ID' exited after ${RUNTIME}s. Log tail:"
+                printf -- '-%.0s' $(seq 1 60); echo
+                cat "$TEMP_LOG_FILE"
+                printf '=%.0s' $(seq 1 60); echo
+
+                if [ "$RUNTIME" -ge "$STABLE_THRESHOLD" ]; then
+                    notify_interval=$NOTIFY_INITIAL
+                    last_notify=0
+                    first_run=false
+                else
+                    NOW="$(date +%s)"
+                    if [ "$last_notify" -eq 0 ] || [ $((NOW - last_notify)) -ge "$notify_interval" ]; then
+                        LOG_TAIL="$(cat "$TEMP_LOG_FILE")"
+                        node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Crashed
+5
+$DEFAULT_TAGS
+The '$MODULE_ID' module crashed after ${RUNTIME}s. Log tail:
+$LOG_TAIL" "$NTFY_CONFIGS" || true
+                        if [ "$last_notify" -ne 0 ]; then
+                            notify_interval=$((notify_interval * 2))
+                            if [ "$notify_interval" -gt "$NOTIFY_MAX" ]; then
+                                notify_interval=$NOTIFY_MAX
+                            fi
+                        fi
+                        last_notify=$NOW
+                    else
+                        SECONDS_SINCE_LAST=$(($(date +%s) - last_notify))
+                        SECONDS_UNTIL_NEXT=$((notify_interval - SECONDS_SINCE_LAST))
+                        echo "Crash notification suppressed by backoff (next notification in ${SECONDS_UNTIL_NEXT}s, current interval ${notify_interval}s)"
+                    fi
                 fi
-                echo "Restarting module '$MODULE_ID' in ${BACKOFF_SECS}s..."
-                sleep $BACKOFF_SECS
-                BACKOFF_SECS=$((BACKOFF_SECS * 2))
-                if [ $BACKOFF_SECS -gt $MAX_BACKOFF ]; then
-                    BACKOFF_SECS=$MAX_BACKOFF
-                fi
+                rm -f "$TEMP_LOG_FILE"
+                echo "Restarting module '$MODULE_ID' in ${RESTART_DELAY}s..."
+                sleep "$RESTART_DELAY"
             done
-            if [ -f "$HERE"/onModuleExit.sh ]; then
-                bash "$HERE"/onModuleExit.sh "$MODULE_ID" "$EXITED_CLEANLY"
-            else
-                bash "$HERE"/onModuleExit.default.sh "$MODULE_ID" "$EXITED_CLEANLY"
-            fi
         ) &
+        MODULE_PIDS+=("$!")
     fi
 done
 

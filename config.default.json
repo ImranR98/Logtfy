@@ -12,7 +12,8 @@
         "fallbackConfig": null
     },
     "modulesEnabledByDefault": false,
-    "allowModuleFailCount": 3,
+    "crashNotificationInitialBackoffSeconds": 60,
+    "crashNotificationMaxBackoffSeconds": 3600,
     "moduleCustomization": [
         {
             "module": "ssh_logins",
