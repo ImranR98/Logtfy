@@ -20,9 +20,25 @@ Simple log monitoring service that uses [ntfy](https://ntfy.sh) for alerts.
      - You can define as many servers as you want, but only 1 to 2 are used (the main server, with an optional fallback).
    - This file also defines changes to the default settings per module.
      - This includes specifying a different ntfy server (and fallback) to use, customizing the topic name, disabling modules, and adding additional data to use for log collection and parsing.
+     - A module entry can contain a `moduleInstances` array to run the same module multiple times with different settings (each instance gets its own logger/parser args, topic, and enable flag).
    - Other details not mentioned - most property names are self-explanatory.
 3. Optionally, create a file named `onExit.sh` and customize it - this file runs when the monitoring script exits for any reason.
 4. If you've enabled a module that grabs logs from a Kubernetes service, you'll need to run `k8s/prep.sh`.
 5. Launch the service with `run.sh`
    - Alternatively, you can use the `Dockerfile` to build and run a Docker image.
    - You can also set it up to run as a systemd service using the example service config file `logtfy.service.example`.
+
+# Modules
+
+## generic_logs
+
+Monitors either a Docker container or a Kubernetes service and alerts when a log line matches a user-provided regex.
+
+- `loggerArg` - space-separated, where the first word picks the source:
+  - `<container> [stderr2stdout|printstderr]` - streams Docker logs (default stderr mode: suppress stderr).
+  - `k8s <service> [namespace]` - streams Kubernetes pod logs (default namespace: `default`).
+- `parserArg` - a JSON string with the following fields:
+  - `regex` - regex (extended) to match log lines against; an empty regex matches every line.
+  - `title` - notification title (optional, defaults to `Logtfy Alert`).
+  - `message` - text to prepend to the matched log line in the notification (optional).
+- If you need to monitor more than one source, configure multiple entries under `moduleInstances`.

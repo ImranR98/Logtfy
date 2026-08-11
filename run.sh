@@ -37,29 +37,46 @@ NOTIFY_MAX="$(node "$HERE"/configParser.js getCrashNotificationMaxBackoffSeconds
 
 for MODULE_REL_PATH in "$HERE"/modules/*; do
     MODULE_ID="$(basename "$MODULE_REL_PATH")"
-    IS_ENABLED="$(node "$HERE"/configParser.js isModuleEnabled "$MODULE_ID")"
-    if [ "$IS_ENABLED" = true ]; then
-        LOGGER_EXTRA_DATA="$(node "$HERE"/configParser.js getLoggerArgForModule "$MODULE_ID")"
-        PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID")"
-        NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule "$MODULE_ID")"
-        MODULE_STRING="$(node "$HERE"/configParser.js getModuleSummaryString "$MODULE_ID" "$NTFY_CONFIGS")"
-        DEFAULT_PRIORITY="$(node "$HERE"/configParser.js getDefaultPriorityForModule "$MODULE_ID")"
-        DEFAULT_TAGS="$(node "$HERE"/configParser.js getDefaultTagsForModule "$MODULE_ID")"
-        (
+    INSTANCE_NAMES=()
+    while IFS= read -r INSTANCE_NAME; do
+        INSTANCE_NAMES+=("$INSTANCE_NAME")
+    done < <(node "$HERE"/configParser.js listModuleInstances "$MODULE_ID")
+    if [ ${#INSTANCE_NAMES[@]} -eq 0 ]; then
+        IS_ENABLED="$(node "$HERE"/configParser.js isModuleEnabled "$MODULE_ID")"
+        if [ "$IS_ENABLED" != true ]; then
+            continue
+        fi
+        INSTANCE_NAMES=("")
+    fi
+    for INSTANCE_NAME in "${INSTANCE_NAMES[@]}"; do
+            if [ -n "$INSTANCE_NAME" ]; then
+                IS_INSTANCE_ENABLED="$(node "$HERE"/configParser.js isModuleInstanceEnabled "$MODULE_ID" "$INSTANCE_NAME")"
+                if [ "$IS_INSTANCE_ENABLED" != true ]; then
+                    continue
+                fi
+            fi
+            INSTANCE_ID="$([ -n "$INSTANCE_NAME" ] && echo "$INSTANCE_NAME" || echo "$MODULE_ID")"
+            LOGGER_EXTRA_DATA="$(node "$HERE"/configParser.js getLoggerArgForModule "$MODULE_ID" "$INSTANCE_NAME")"
+            PARSER_EXTRA_DATA="$(node "$HERE"/configParser.js getParserArgForModule "$MODULE_ID" "$INSTANCE_NAME")"
+            NTFY_CONFIGS="$(node "$HERE"/configParser.js getNtfyConfigsForModule "$MODULE_ID" "$INSTANCE_NAME")"
+            MODULE_STRING="$(node "$HERE"/configParser.js getModuleSummaryString "$MODULE_ID" "$INSTANCE_NAME" "$NTFY_CONFIGS")"
+            DEFAULT_PRIORITY="$(node "$HERE"/configParser.js getDefaultPriorityForModule "$MODULE_ID" "$INSTANCE_NAME")"
+            DEFAULT_TAGS="$(node "$HERE"/configParser.js getDefaultTagsForModule "$MODULE_ID" "$INSTANCE_NAME")"
+            (
             set +e
 
             cleanup() {
-                node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Container Kill
+                node "$HERE"/notify.js "$INSTANCE_ID" "Logtfy on $(hostname -f): '$INSTANCE_ID' Container Kill
 5
 $DEFAULT_TAGS
-The '$MODULE_ID' module stopped because the container was killed." "$NTFY_CONFIGS" || true
+The '$INSTANCE_ID' module stopped because the container was killed." "$NTFY_CONFIGS" || true
             }
             trap cleanup EXIT
 
-            node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Module Started
+            node "$HERE"/notify.js "$INSTANCE_ID" "Logtfy on $(hostname -f): '$INSTANCE_ID' Module Started
 3
 $DEFAULT_TAGS
-The '$MODULE_ID' module has started." "$NTFY_CONFIGS" || true
+The '$INSTANCE_ID' module has started." "$NTFY_CONFIGS" || true
 
             RESTART_DELAY=5
             STABLE_THRESHOLD=60
@@ -75,10 +92,10 @@ The '$MODULE_ID' module has started." "$NTFY_CONFIGS" || true
                 if [ "$first_run" = true ] || [ "$last_notify" -ne 0 ]; then
                     (
                         sleep "$STABLE_THRESHOLD"
-                        node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Stable
+                        node "$HERE"/notify.js "$INSTANCE_ID" "Logtfy on $(hostname -f): '$INSTANCE_ID' Stable
 3
 $DEFAULT_TAGS
-The '$MODULE_ID' module is stable after ${STABLE_THRESHOLD}s of uptime." "$NTFY_CONFIGS" || true
+The '$INSTANCE_ID' module is stable after ${STABLE_THRESHOLD}s of uptime." "$NTFY_CONFIGS" || true
                     ) &
                     WATCHDOG_PID=$!
                 else
@@ -94,7 +111,7 @@ The '$MODULE_ID' module is stable after ${STABLE_THRESHOLD}s of uptime." "$NTFY_
                 fi
 
                 printf '=%.0s' $(seq 1 60); echo
-                echo "Module '$MODULE_ID' exited after ${RUNTIME}s. Log tail:"
+                echo "Module '$INSTANCE_ID' exited after ${RUNTIME}s. Log tail:"
                 printf -- '-%.0s' $(seq 1 60); echo
                 cat "$TEMP_LOG_FILE"
                 printf '=%.0s' $(seq 1 60); echo
@@ -107,10 +124,10 @@ The '$MODULE_ID' module is stable after ${STABLE_THRESHOLD}s of uptime." "$NTFY_
                     NOW="$(date +%s)"
                     if [ "$last_notify" -eq 0 ] || [ $((NOW - last_notify)) -ge "$notify_interval" ]; then
                         LOG_TAIL="$(cat "$TEMP_LOG_FILE")"
-                        node "$HERE"/notify.js "$MODULE_ID" "Logtfy on $(hostname -f): '$MODULE_ID' Crashed
+                        node "$HERE"/notify.js "$INSTANCE_ID" "Logtfy on $(hostname -f): '$INSTANCE_ID' Crashed
 5
 $DEFAULT_TAGS
-The '$MODULE_ID' module crashed after ${RUNTIME}s. Log tail:
+The '$INSTANCE_ID' module crashed after ${RUNTIME}s. Log tail:
 $LOG_TAIL" "$NTFY_CONFIGS" || true
                         if [ "$last_notify" -ne 0 ]; then
                             notify_interval=$((notify_interval * 2))
@@ -126,12 +143,12 @@ $LOG_TAIL" "$NTFY_CONFIGS" || true
                     fi
                 fi
                 rm -f "$TEMP_LOG_FILE"
-                echo "Restarting module '$MODULE_ID' in ${RESTART_DELAY}s..."
+                echo "Restarting module '$INSTANCE_ID' in ${RESTART_DELAY}s..."
                 sleep "$RESTART_DELAY"
             done
-        ) &
-        MODULE_PIDS+=("$!")
-    fi
+            ) &
+            MODULE_PIDS+=("$!")
+        done
 done
 
 wait

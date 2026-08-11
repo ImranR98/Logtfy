@@ -35,6 +35,23 @@
             "loggerArg": "production",
             "ntfyTopic": "logtfy",
             "enabled": false
+        },
+        {
+            "module": "generic_logs",
+            "moduleInstances": [
+                {
+                    "name": "traefik_errors",
+                    "enabled": false,
+                    "loggerArg": "traefik stderr2stdout",
+                    "parserArg": "{\"regex\":\"error\",\"title\":\"Traefik error\",\"message\":\"A traefik log line matched:\"}"
+                },
+                {
+                    "name": "app_k8s_errors",
+                    "enabled": false,
+                    "loggerArg": "k8s myapp production",
+                    "parserArg": "{\"regex\":\"fatal\",\"title\":\"App fatal error\",\"message\":\"A log line from myapp matched:\"}"
+                }
+            ]
         }
     ]
 }

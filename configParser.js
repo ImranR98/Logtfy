@@ -2,6 +2,7 @@ const fs = require('fs')
 
 const action = process.argv[2]
 const moduleId = process.argv[3]
+const instanceName = process.argv[4] || ''
 
 let configPath = `${__dirname}/config.json`
 if (!fs.existsSync(configPath)) {
@@ -10,11 +11,23 @@ if (!fs.existsSync(configPath)) {
 const config = require(configPath)
 
 const moduleCustomization = config.moduleCustomization.find(c => c.module === moduleId) ?? {}
+const moduleInstances = moduleCustomization.moduleInstances || []
+const isInstance = moduleInstances.length > 0 && instanceName.length > 0
+const moduleInstance = isInstance ? moduleInstances.find(i => i.name === instanceName) ?? {} : {}
+
+const effectiveCustomization = isInstance ? moduleInstance : moduleCustomization
+
+const getProp = (key) => {
+    const value = effectiveCustomization[key] ?? (isInstance ? moduleCustomization[key] : undefined)
+    if (value !== undefined && value !== null) {
+        console.log(value)
+    }
+}
 
 const getNtfyConfigsForModule = () => {
-    const moduleTopic = moduleCustomization.ntfyTopic || moduleId
-    const mainConfigName = moduleCustomization.ntfyConfig || config.ntfyConfig.defaultConfig
-    const fallbackConfigName = moduleCustomization.ntfyFallback || config.ntfyConfig.fallbackConfig
+    const moduleTopic = effectiveCustomization.ntfyTopic || moduleCustomization.ntfyTopic || (isInstance ? `${moduleId}_${instanceName}` : moduleId)
+    const mainConfigName = effectiveCustomization.ntfyConfig || moduleCustomization.ntfyConfig || config.ntfyConfig.defaultConfig
+    const fallbackConfigName = effectiveCustomization.ntfyFallback || moduleCustomization.ntfyFallback || config.ntfyConfig.fallbackConfig
     const mainConfig = mainConfigName && config.ntfyConfig.configs.find(c => c.id === mainConfigName)
     const fallbackConfig = fallbackConfigName && mainConfigName !== fallbackConfigName && config.ntfyConfig.configs.find(c => c.id === fallbackConfigName)
     if (!mainConfig) {
@@ -28,18 +41,25 @@ const getNtfyConfigsForModule = () => {
     return finalConfigs
 }
 
-const getModuleProp = (key) => {
-    if (moduleCustomization[key]) {
-        console.log(moduleCustomization[key])
-    }
-}
-
 switch (action) {
     case 'isModuleEnabled':
         console.log(
             moduleCustomization.enabled === true ||
             (config.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
         )
+        break;
+    case 'isModuleInstanceEnabled':
+        const moduleEnabled =
+            moduleCustomization.enabled === true ||
+            (config.modulesEnabledByDefault === true && moduleCustomization.enabled !== false)
+        console.log(moduleInstance.enabled === true || (moduleEnabled && moduleInstance.enabled !== false))
+        break;
+    case 'listModuleInstances':
+        for (const instance of moduleInstances) {
+            if (instance.name) {
+                console.log(instance.name)
+            }
+        }
         break;
     case 'getCrashNotificationInitialBackoffSeconds':
         console.log(config.crashNotificationInitialBackoffSeconds || 60)
@@ -48,23 +68,24 @@ switch (action) {
         console.log(config.crashNotificationMaxBackoffSeconds || 3600)
         break;
     case 'getLoggerArgForModule':
-        getModuleProp('loggerArg')
+        getProp('loggerArg')
         break;
     case 'getParserArgForModule':
-        getModuleProp('parserArg')
+        getProp('parserArg')
         break;
     case 'getNtfyConfigsForModule':
         console.log(JSON.stringify(getNtfyConfigsForModule()))
         break;
     case 'getModuleSummaryString':
-        const ntfyConfigs = process.argv[4] ? JSON.parse(process.argv[4]) : getNtfyConfigsForModule()
-        console.log(`'${moduleId}' to ${ntfyConfigs.map(c => `'${c.host}/${c.topic}'`).join(' or ')}`)
+        const ntfyConfigs = process.argv[5] ? JSON.parse(process.argv[5]) : getNtfyConfigsForModule()
+        const displayName = isInstance ? `${moduleId}/${instanceName}` : moduleId
+        console.log(`'${displayName}' to ${ntfyConfigs.map(c => `'${c.host}/${c.topic}'`).join(' or ')}`)
         break;
     case 'getDefaultPriorityForModule':
-        getModuleProp('defaultPriority')
+        getProp('defaultPriority')
         break;
     case 'getDefaultTagsForModule':
-        getModuleProp('defaultTags')
+        getProp('defaultTags')
         break;
     default:
         console.error(`Unknown action '${action}'!`)
