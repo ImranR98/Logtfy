@@ -48,13 +48,12 @@ while true; do
     fi
 
     for POD in $PODS; do
-        curl -s "${CURL_AUTH[@]}" \
-            "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=1" &
+        timeout 3600 curl -s "${CURL_AUTH[@]}" \
+            "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=3" &
     done
 
-    # The kubelet hard-caps log-follow connections (its HTTP server kills
-    # responses after ~4h), so streams end periodically even on a healthy
-    # service. Loop back and re-stream instead of exiting, so module
-    # restarts are only driven by real problems.
+    # Rotate the stream every hour so the kubelet's hard ~4h cap on
+    # log-follow connections is never hit. sinceSeconds=3 replays the
+    # last 3s on reconnect so no logs are lost in the handoff gap.
     wait || true
 done
