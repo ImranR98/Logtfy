@@ -37,18 +37,24 @@ CA_CERT=$(find_file ca.crt)
 
 CURL_AUTH=(--header "Authorization: Bearer $TOKEN" --cacert "$CA_CERT")
 
-PODS=$(curl -s "${CURL_AUTH[@]}" \
-    "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods?labelSelector=app.kubernetes.io/name=$SERVICE_NAME" |
-    jq -r '.items[].metadata.name')
+while true; do
+    PODS=$(curl -s "${CURL_AUTH[@]}" \
+        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods?labelSelector=app.kubernetes.io/name=$SERVICE_NAME" |
+        jq -r '.items[].metadata.name')
 
-if [ -z "$PODS" ]; then
-    echo "No pods found!" >&2
-    exit 1
-fi
+    if [ -z "$PODS" ]; then
+        echo "No pods found!" >&2
+        exit 1
+    fi
 
-for POD in $PODS; do
-    curl -s "${CURL_AUTH[@]}" \
-        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=1" &
+    for POD in $PODS; do
+        curl -s "${CURL_AUTH[@]}" \
+            "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods/$POD/log?follow=true&sinceSeconds=1" &
+    done
+
+    # The kubelet hard-caps log-follow connections (its HTTP server kills
+    # responses after ~4h), so streams end periodically even on a healthy
+    # service. Loop back and re-stream instead of exiting, so module
+    # restarts are only driven by real problems.
+    wait || true
 done
-
-wait
