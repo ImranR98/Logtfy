@@ -37,15 +37,21 @@ CA_CERT=$(find_file ca.crt)
 
 CURL_AUTH=(--header "Authorization: Bearer $TOKEN" --cacert "$CA_CERT")
 
+NO_PODS_LOGGED=""
 while true; do
-    PODS=$(curl -s "${CURL_AUTH[@]}" \
-        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods?labelSelector=app.kubernetes.io/name=$SERVICE_NAME" |
-        jq -r '.items[].metadata.name')
+    PODS="$(curl -s --connect-timeout 5 --max-time 30 "${CURL_AUTH[@]}" \
+        "$API_SERVER/api/v1/namespaces/$NAMESPACE/pods?labelSelector=app.kubernetes.io/name=$SERVICE_NAME" 2>/dev/null |
+        jq -r '.items[]?.metadata.name' 2>/dev/null)" || true
 
     if [ -z "$PODS" ]; then
-        echo "No pods found!" >&2
-        exit 1
+        if [ -z "$NO_PODS_LOGGED" ]; then
+            echo "No pods found for '$SERVICE_NAME' in namespace '$NAMESPACE' (API unreachable or no matching pods); retrying every 5s..." >&2
+            NO_PODS_LOGGED=1
+        fi
+        sleep 5
+        continue
     fi
+    NO_PODS_LOGGED=""
 
     for POD in $PODS; do
         timeout 3600 curl -s "${CURL_AUTH[@]}" \
