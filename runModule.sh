@@ -15,7 +15,7 @@ LOGGER_PIPE="$(mktemp -u)"
 mkfifo "$LOGGER_PIPE"
 LOGGER_ERR_FILE="$(mktemp)"
 
-bash "$HERE"/modules/"$MODULE_ID"/logger.sh "$LOGGER_EXTRA_DATA" > "$LOGGER_PIPE" 2> "$LOGGER_ERR_FILE" &
+bash "$HERE"/modules/"$MODULE_ID"/logger.sh "$LOGGER_EXTRA_DATA" "$PARSER_EXTRA_DATA" > "$LOGGER_PIPE" 2> "$LOGGER_ERR_FILE" &
 LOGGER_PID=$!
 
 while read -r log; do
