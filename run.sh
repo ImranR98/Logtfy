@@ -23,8 +23,8 @@ shutdown() {
         bash "$HERE"/onExit.sh
     fi
     for pid in "${MODULE_PIDS[@]}"; do
-        kill "$pid" 2>/dev/null
-        wait "$pid" 2>/dev/null
+        kill "$pid" 2>/dev/null || true
+        wait "$pid" 2>/dev/null || true
     done
     exit 0
 }

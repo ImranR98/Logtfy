@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-EXTRA_DATA="$1"
-
 i=0
 while true; do
     i=$((i + 1))

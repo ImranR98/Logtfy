@@ -1,0 +1,38 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests",
+    "helpers:pinGitHubActionDigests",
+    ":configMigration"
+  ],
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboard": true,
+  "rangeStrategy": "replace",
+  "automerge": false,
+  "packageRules": [
+    {
+      "description": "Docker base image and CLI digest refreshes",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "groupName": "docker base images"
+    },
+    {
+      "description": "Docker base image non-major version updates",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor", "patch", "pin"],
+      "groupName": "docker base images (non-major)"
+    },
+    {
+      "description": "GitHub Actions updates (non-major grouped)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Majors stay as separate PRs and are always manual: the shell test gate cannot prove base-OS/runtime compatibility",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    }
+  ]
+}

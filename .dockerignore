@@ -1,5 +1,9 @@
 config.json
 onExit.sh
 .git
+.github
+tests
+renovate.json
+REPORT.md
 k8s/token
 k8s/ca.crt
