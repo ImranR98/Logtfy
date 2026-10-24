@@ -15,6 +15,14 @@ test_ssh_logins() {
     out="$(parser_output ssh_logins "$line")"
     assert_contains "$out" "SSH login to"
     assert_contains "$out" "alice from 203.0.113.5 port 4242 at "
+
+    out="$(parser_output ssh_logins 'Jan  1 00:00:00 host sshd[123]: Accepted password for bob from 198.51.100.7 port 2222 ssh2')"
+    assert_contains "$out" "bob from 198.51.100.7 port 2222 at "
+
+    # sshd reports PAM keyboard-interactive logins as keyboard-interactive/pam.
+    out="$(parser_output ssh_logins 'Jan  1 00:00:00 host sshd[123]: Accepted keyboard-interactive/pam for carol from 198.51.100.8 port 22 ssh2')"
+    assert_contains "$out" "carol from 198.51.100.8 port 22 at "
+
     assert_empty "$(parser_output ssh_logins 'Jan  1 00:00:00 host sshd[123]: Failed password for root from 203.0.113.5 port 22 ssh2')"
 }
 
@@ -88,6 +96,13 @@ test_traefik_accesslogs() {
     other="{\"time\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ClientHost\":\"203.0.113.6\",\"RequestAddr\":\"example.org\"}"
     out="$(LOGTFY_STATE_DIR="$STATE_DIR" parser_output traefik_accesslogs "$other")"
     assert_contains "$out" "203.0.113.6 requested example.org"
+
+    # Entries older than the recall window are pruned, so the same IP alerts again.
+    printf '2020-01-01T00:00:00Z~203.0.113.7\n' > "$STATE_DIR/traefik_accesslogs"
+    line="{\"time\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"ClientHost\":\"203.0.113.7\",\"RequestAddr\":\"old.example\"}"
+    out="$(LOGTFY_STATE_DIR="$STATE_DIR" parser_output traefik_accesslogs "$line")"
+    assert_contains "$out" "New Client IP (within 24H)"
+    assert_contains "$out" "203.0.113.7 requested old.example"
 }
 
 test_traefik_geoblock() {
@@ -105,6 +120,13 @@ test_traefik_geoblock() {
     other="INFO: GeoBlock: ${stamp} my-geoblock@file: request allowed [203.0.113.10] for country [DE]"
     out="$(LOGTFY_STATE_DIR="$STATE_DIR" parser_output traefik_geoblock_allowed_requests "$other")"
     assert_contains "$out" "[203.0.113.10] from [DE]"
+
+    # Stale entries are pruned before the duplicate check.
+    printf '2020-01-01T00:00:00Z~[203.0.113.11]\n' > "$STATE_DIR/traefik_geoblock_allowed_requests"
+    out="$(LOGTFY_STATE_DIR="$STATE_DIR" parser_output traefik_geoblock_allowed_requests \
+        "INFO: GeoBlock: ${stamp} my-geoblock@file: request allowed [203.0.113.11] for country [CA]")"
+    assert_contains "$out" "New Allowed Client IP (within 24H)"
+    assert_contains "$out" "[203.0.113.11] from [CA]"
 }
 
 test_traefik_accesslogs_custom() {
@@ -141,8 +163,39 @@ test_watchtower_updates() {
     assert_empty "$(parser_output watchtower_updates 'time=2026-01-01T00:00:00Z level=info msg="Session done"')"
 }
 
-test_k8s_parser_delegation() {
+test_parser_input_errors() {
     local out
+
+    if out="$(parser_output generic_logs 'anything' 'not-json' 2>&1)"; then
+        fail "expected malformed generic_logs parserArg to exit non-zero"
+    fi
+    assert_contains "$out" "parse error"
+
+    if out="$(parser_output traefik_accesslogs '{"time": }' 2>&1)"; then
+        fail "expected malformed Traefik access log JSON to exit non-zero"
+    fi
+    assert_contains "$out" "parse error"
+}
+
+test_k8s_parser_delegation() {
+    STATE_DIR="$(mktemp -d)"
+    trap 'rm -rf "$STATE_DIR"' EXIT
+    local out
+
+    out="$(parser_output authelia_logins_k8s \
+        "time=\"2026-01-01T00:00:00Z\" level=info msg=\"Successful 1FA authentication attempt by user 'alice'\" method=POST path=/api/firstfactor remote_ip=203.0.113.5")"
+    assert_contains "$out" "Successful Login"
+    assert_contains "$out" "alice' from 203.0.113.5"
+
+    out="$(parser_output syncthing_connections_k8s \
+        '[ABCDEF] 2026/01/01 12:00:00 INFO: Device ABCDEF client is "syncthing v1.27.0" at "1.2.3.4:1234"')"
+    assert_contains "$out" "Device Connected"
+
+    out="$(LOGTFY_STATE_DIR="$STATE_DIR" parser_output traefik_geoblock_allowed_requests_k8s \
+        'INFO: GeoBlock: 2026/01/01 12:00:00 my-geoblock@file: request allowed [203.0.113.12] for country [FR]')"
+    assert_contains "$out" "New Allowed Client IP"
+    assert_contains "$out" "[203.0.113.12] from [FR]"
+
     out="$(parser_output traefik_accesslogs_custom_k8s \
         '{"ClientAddr":"203.0.113.5","StartUTC":"2026-01-01T00:00:00Z","RequestMethod":"GET","RequestHost":"example.com","RequestPath":"/x","DownstreamStatus":200}' \
         '200')"
@@ -159,4 +212,5 @@ run_test "parser: traefik access-log dedupe" test_traefik_accesslogs
 run_test "parser: traefik geoblock dedupe" test_traefik_geoblock
 run_test "parser: traefik custom access log" test_traefik_accesslogs_custom
 run_test "parser: watchtower log formats" test_watchtower_updates
-run_test "parser: k8s delegation" test_k8s_parser_delegation
+run_test "parser: malformed parser input" test_parser_input_errors
+run_test "parser: k8s delegations" test_k8s_parser_delegation

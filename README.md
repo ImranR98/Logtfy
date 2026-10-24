@@ -49,8 +49,12 @@ The previous Docker Hub `imranrdev/logtfy` repository is deprecated and no longe
 - Validate the Renovate config: `npx --yes -p renovate renovate-config-validator --strict renovate.json`
 
 The tests use fake Docker/journalctl/ntfy endpoints and do not need a Docker
-socket or a live notification server. A separate smoke script builds and runs
-the production image: `bash tests/smoke-image.sh ghcr.io/imranr98/logtfy:latest`.
+socket or a live notification server. Bash line coverage is not measured (there
+is no portable line-coverage tool for this spawned-process/temp-copy suite);
+instead, a coverage-manifest test requires every module to have both scripts and
+be referenced by tests, and the image smoke re-runs the config/parser tests
+inside the production image. A separate smoke script builds and runs the
+production image: `bash tests/smoke-image.sh ghcr.io/imranr98/logtfy:latest`.
 
 # Modules
 

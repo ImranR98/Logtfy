@@ -78,8 +78,8 @@ The '$INSTANCE_ID' module stopped because the container was killed." "$NTFY_CONF
 $DEFAULT_TAGS
 The '$INSTANCE_ID' module has started." "$NTFY_CONFIGS" || true
 
-            RESTART_DELAY=5
-            STABLE_THRESHOLD=60
+            RESTART_DELAY="${LOGTFY_RESTART_DELAY:-5}"
+            STABLE_THRESHOLD="${LOGTFY_STABLE_THRESHOLD:-60}"
             notify_interval=$NOTIFY_INITIAL
             last_notify=0
             first_run=true

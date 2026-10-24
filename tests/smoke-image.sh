@@ -38,6 +38,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+MOUNT_OPTS="ro"
+if [ "$ENGINE" = "podman" ]; then
+    MOUNT_OPTS="ro,Z"
+fi
+
 echo "engine: $ENGINE"
 echo "image:  $IMAGE"
 
@@ -62,21 +67,40 @@ esac
 echo "== required tools =="
 "$ENGINE" run --rm --entrypoint bash "$IMAGE" -c '
     set -e
+    for tool in bash docker journalctl nc jq node curl script hostname timeout base64 mktemp mkfifo seq; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            echo "missing runtime tool: $tool" >&2
+            exit 1
+        fi
+    done
     test -x /usr/bin/docker
     test -x /usr/bin/journalctl
-    test -x "$(command -v nc)"
     docker --version
+    docker logs --help >/dev/null
     journalctl --version | head -n 1
     jq --version
     node --version
     curl --version | head -n 1
+    bash --version | head -n 1
+    script --version 2>&1 | head -n 1
+    script -q -c "echo script-ok" /dev/null | grep -q script-ok
+    [ "$(node /logtfy/configParser.js getCrashNotificationInitialBackoffSeconds)" = "60" ]
+    find /logtfy -name "*.sh" -print0 | xargs -0 -n1 bash -n
+'
+
+echo "== parser/config tests inside the image =="
+"$ENGINE" run --rm --entrypoint bash \
+    -v "$ROOT/tests:/logtfy/tests:$MOUNT_OPTS" \
+    -e ROOT=/logtfy \
+    "$IMAGE" -c '
+    set -e
+    . /logtfy/tests/lib.sh
+    . /logtfy/tests/test_config_parser.sh
+    . /logtfy/tests/test_parsers.sh
+    [ "$TESTS_FAILED" -eq 0 ]
 '
 
 echo "== daemon startup with fixture config =="
-MOUNT_OPTS="ro"
-if [ "$ENGINE" = "podman" ]; then
-    MOUNT_OPTS="ro,Z"
-fi
 
 "$ENGINE" run -d --name "$CONTAINER" \
     -v "$ROOT/tests/fixtures/smoke-config.json:/logtfy/config.json:$MOUNT_OPTS" \

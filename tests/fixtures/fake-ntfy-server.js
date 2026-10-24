@@ -23,8 +23,9 @@ const server = https.createServer(
                     body
                 }) + '\n'
             )
-            res.writeHead(200, { 'Content-Type': 'text/plain' })
-            res.end('ok')
+            const status = req.url.includes('fail500') ? 500 : 200
+            res.writeHead(status, { 'Content-Type': 'text/plain' })
+            res.end(status === 200 ? 'ok' : 'fail')
         })
     }
 )

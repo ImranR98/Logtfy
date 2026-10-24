@@ -9,6 +9,7 @@
   "osvVulnerabilityAlerts": true,
   "dependencyDashboard": true,
   "rangeStrategy": "replace",
+  "separateMajorMinor": true,
   "automerge": false,
   "packageRules": [
     {
@@ -30,9 +31,19 @@
       "groupName": "github actions"
     },
     {
-      "description": "Majors stay as separate PRs and are always manual: the shell test gate cannot prove base-OS/runtime compatibility",
+      "description": "Auto-merge non-major updates only after the required test check and native auto-merge are enabled (squash is allowed on this repo)",
+      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "automerge": true,
+      "platformAutomerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "ignoreTests": false
+    },
+    {
+      "description": "Majors stay as separate PRs and are always manual: the gate cannot prove base-OS/runtime compatibility for a new major",
       "matchUpdateTypes": ["major"],
-      "automerge": false
+      "automerge": false,
+      "platformAutomerge": false
     }
   ]
 }
