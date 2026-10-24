@@ -25,9 +25,10 @@ run_module() {
     local name="$2"
     local tail_file="$3"
     local notify_log="$4"
-    shift 4
+    local priority="${5:-}"
+    local tags="${6:-}"
     NOTIFY_LOG="$notify_log" bash "$dir/runModule.sh" "$name" "logger-arg" "parser-arg" \
-        '[{"id":"fake","host":"https://127.0.0.1:1","topic":"t"}]' "$tail_file" "" "" "$@"
+        '[{"id":"fake","host":"https://127.0.0.1:1","topic":"t"}]' "$tail_file" "$priority" "$tags"
 }
 
 test_pipeline_and_notify() {
@@ -37,7 +38,7 @@ test_pipeline_and_notify() {
     install_notify_recorder "$RUN_MODULE_TMP"
     install_test_module "$RUN_MODULE_TMP" test_module
 
-    run_module "$RUN_MODULE_TMP" test_module "$RUN_MODULE_TMP/tail.log" "$RUN_MODULE_TMP/notify.log"
+    run_module "$RUN_MODULE_TMP" test_module "$RUN_MODULE_TMP/tail.log" "$RUN_MODULE_TMP/notify.log" "4" "computer,tada"
 
     assert_file_contains "$RUN_MODULE_TMP/tail.log" "line one"
     assert_file_contains "$RUN_MODULE_TMP/tail.log" "line two alert"
@@ -49,8 +50,8 @@ test_pipeline_and_notify() {
     assert_eq "$(printf '%s' "$call" | jq -r '.[0]')" "test_module"
     assert_contains "$(printf '%s' "$call" | jq -r '.[1]')" "Test Title"
     assert_contains "$(printf '%s' "$call" | jq -r '.[1]')" "message: line two alert"
-    assert_eq "$(printf '%s' "$call" | jq -r '.[3]')" ""
-    assert_eq "$(printf '%s' "$call" | jq -r '.[4]')" ""
+    assert_eq "$(printf '%s' "$call" | jq -r '.[3]')" "4"
+    assert_eq "$(printf '%s' "$call" | jq -r '.[4]')" "computer,tada"
 }
 
 test_logger_failure_propagates() {
@@ -102,6 +103,45 @@ EOF
     fi
 }
 
+test_tail_keeps_last_ten_lines() {
+    RUN_MODULE_TMP="$(mktemp -d)"
+    trap 'rm -rf "$RUN_MODULE_TMP"' EXIT
+    copy_repo "$RUN_MODULE_TMP"
+    install_notify_recorder "$RUN_MODULE_TMP"
+    mkdir -p "$RUN_MODULE_TMP/modules/many_lines"
+    cat > "$RUN_MODULE_TMP/modules/many_lines/logger.sh" <<'EOF'
+#!/bin/bash
+for i in $(seq 1 15); do
+    printf 'line-%02d\n' "$i"
+done
+EOF
+    cat > "$RUN_MODULE_TMP/modules/many_lines/parser.sh" <<'EOF'
+#!/bin/bash
+exit 0
+EOF
+
+    run_module "$RUN_MODULE_TMP" many_lines "$RUN_MODULE_TMP/tail.log" "$RUN_MODULE_TMP/notify.log"
+    assert_file_contains "$RUN_MODULE_TMP/tail.log" "line-15"
+    assert_not_contains "$(cat "$RUN_MODULE_TMP/tail.log")" "line-05"
+}
+
+test_notify_failure_does_not_break_module() {
+    RUN_MODULE_TMP="$(mktemp -d)"
+    trap 'rm -rf "$RUN_MODULE_TMP"' EXIT
+    copy_repo "$RUN_MODULE_TMP"
+    cat > "$RUN_MODULE_TMP/notify.js" <<'EOF'
+console.error('notify down')
+process.exit(1)
+EOF
+    install_test_module "$RUN_MODULE_TMP" test_module
+
+    run_module "$RUN_MODULE_TMP" test_module "$RUN_MODULE_TMP/tail.log" "$RUN_MODULE_TMP/notify.log" 2>"$RUN_MODULE_TMP/stderr.log"
+    assert_file_contains "$RUN_MODULE_TMP/tail.log" "line two alert"
+    assert_file_contains "$RUN_MODULE_TMP/stderr.log" "notify down"
+}
+
 run_test "runModule: logger -> parser -> notify" test_pipeline_and_notify
 run_test "runModule: logger exit code and stderr tail" test_logger_failure_propagates
 run_test "runModule: parser failure is contained" test_parser_failure_is_contained
+run_test "runModule: crash tail keeps last ten lines" test_tail_keeps_last_ten_lines
+run_test "runModule: notify failure does not kill the module" test_notify_failure_does_not_break_module

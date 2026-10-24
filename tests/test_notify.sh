@@ -93,6 +93,61 @@ test_fallback() {
     assert_eq "$(printf '%s' "$call" | jq -r '.url')" "/good"
 }
 
+test_http_error_fallback() {
+    start_ntfy_server
+    local configs out
+    configs="$(jq -cn --arg host "$NOTIFY_HOST" '[
+        {id:"bad",host:$host,topic:"fail500"},
+        {id:"good",host:$host,topic:"good"}
+    ]')"
+
+    out="$(notify_run "Title" "$configs" 2>&1)"
+    assert_contains "$out" "Could not post notification"
+    assert_contains "$out" "ok"
+    assert_eq "$(wc -l < "$NOTIFY_REQUEST_LOG")" "2"
+    assert_contains "$(sed -n '1p' "$NOTIFY_REQUEST_LOG")" '"url":"/fail500"'
+    assert_contains "$(sed -n '2p' "$NOTIFY_REQUEST_LOG")" '"url":"/good"'
+}
+
+test_http_error_all_fail() {
+    start_ntfy_server
+    local out rc
+    set +e
+    out="$(notify_run "Title" "[{\"id\":\"bad\",\"host\":\"$NOTIFY_HOST\",\"topic\":\"fail500\"}]" 2>&1)"
+    rc=$?
+    set -e
+    assert_eq "$rc" "1"
+    assert_contains "$out" "ERROR: Could not post notification"
+    assert_contains "$out" "status code: 500"
+}
+
+test_invalid_or_empty_configs() {
+    local out rc
+    set +e
+    out="$(notify_run "Title" 'not-json' 2>&1)"
+    rc=$?
+    set -e
+    assert_eq "$rc" "1"
+    assert_contains "$out" "SyntaxError"
+
+    set +e
+    out="$(notify_run "Title" '[]' 2>&1)"
+    rc=$?
+    set -e
+    assert_eq "$rc" "1"
+    assert_contains "$out" "ERROR: Could not post notification"
+}
+
+test_default_title() {
+    start_ntfy_server
+    local configs call
+    configs="$(jq -cn --arg host "$NOTIFY_HOST" '[{id:"local",host:$host,topic:"defaults"}]')"
+    notify_run "" "$configs" >/dev/null 2>&1
+    call="$(jq -c . "$NOTIFY_REQUEST_LOG")"
+    assert_eq "$(printf '%s' "$call" | jq -r '.headers.title')" "Logtfy Alert"
+    assert_eq "$(printf '%s' "$call" | jq -r '.body')" "No message specified."
+}
+
 test_all_fail() {
     local out rc
     set +e
@@ -105,5 +160,9 @@ test_all_fail() {
 
 run_test "notify: payload, headers, auth" test_notification_payload
 run_test "notify: priority/tag/message defaults" test_defaults
+run_test "notify: HTTP error falls back" test_http_error_fallback
+run_test "notify: HTTP error on all endpoints" test_http_error_all_fail
+run_test "notify: invalid/empty configs" test_invalid_or_empty_configs
+run_test "notify: default title" test_default_title
 run_test "notify: fallback routing" test_fallback
 run_test "notify: all endpoints fail" test_all_fail

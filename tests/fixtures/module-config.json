@@ -64,6 +64,16 @@
             "ntfyFallback": "same"
         },
         {
+            "module": "same_main",
+            "enabled": true,
+            "ntfyFallback": "main"
+        },
+        {
+            "module": "missing_fallback",
+            "enabled": true,
+            "ntfyFallback": "does_not_exist"
+        },
+        {
             "module": "broken",
             "ntfyConfig": "missing"
         }

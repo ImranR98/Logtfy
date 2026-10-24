@@ -70,6 +70,16 @@ test_ntfy_configs() {
     got="$(parser_action getNtfyConfigsForModule delta | jq -S .)"
     assert_eq "$(printf '%s' "$got" | jq -r 'length')" "2"
     assert_eq "$(printf '%s' "$got" | jq -r '.[1].host')" "https://same.example"
+
+    # A fallback naming the main config is deduplicated.
+    got="$(parser_action getNtfyConfigsForModule same_main | jq -S .)"
+    assert_eq "$(printf '%s' "$got" | jq -r 'length')" "1"
+    assert_eq "$(printf '%s' "$got" | jq -r '.[0].topic')" "pre_same_main"
+
+    # A missing fallback config is ignored rather than fatal.
+    got="$(parser_action getNtfyConfigsForModule missing_fallback | jq -S .)"
+    assert_eq "$(printf '%s' "$got" | jq -r 'length')" "1"
+    assert_eq "$(printf '%s' "$got" | jq -r '.[0].host')" "https://ntfy.example"
 }
 
 test_summary_priority_tags() {
@@ -95,6 +105,59 @@ test_config_errors() {
         fail "expected an unknown action to exit non-zero"
     fi
     assert_contains "$out" "Unknown action"
+}
+
+test_default_config_fallback() {
+    FALLBACK_DIR="$(mktemp -d)"
+    trap 'rm -rf "$FALLBACK_DIR"' EXIT
+    cp "$ROOT/configParser.js" "$FALLBACK_DIR/configParser.js"
+    cp "$ROOT/config.default.json" "$FALLBACK_DIR/config.default.json"
+    # Intentionally no config.json: the parser must use config.default.json.
+    assert_eq "$(node "$FALLBACK_DIR/configParser.js" getCrashNotificationInitialBackoffSeconds)" "60"
+    assert_eq "$(node "$FALLBACK_DIR/configParser.js" isModuleEnabled mock_module)" "true"
+    assert_eq "$(node "$FALLBACK_DIR/configParser.js" getNtfyConfigsForModule mock_module | jq -r '.[0].topic')" "logtfy_mock_module"
+}
+
+test_malformed_config() {
+    MALFORMED_DIR="$(mktemp -d)"
+    trap 'rm -rf "$MALFORMED_DIR"' EXIT
+    cp "$ROOT/configParser.js" "$MALFORMED_DIR/configParser.js"
+    printf '{ this is not json\n' > "$MALFORMED_DIR/config.json"
+
+    local out
+    if out="$(node "$MALFORMED_DIR/configParser.js" isModuleEnabled anything 2>&1)"; then
+        fail "expected malformed config.json to exit non-zero"
+    fi
+    assert_contains "$out" "SyntaxError"
+}
+
+test_modules_enabled_by_default() {
+    ENABLED_DIR="$(mktemp -d)"
+    trap 'rm -rf "$ENABLED_DIR"' EXIT
+    cp "$ROOT/configParser.js" "$ENABLED_DIR/configParser.js"
+    cat > "$ENABLED_DIR/config.json" <<'EOF'
+{
+    "ntfyConfig": {
+        "configs": [
+            {"id": "only", "host": "https://only.example"}
+        ],
+        "defaultConfig": "only"
+    },
+    "modulesEnabledByDefault": true,
+    "moduleCustomization": [
+        {"module": "on_by_default"},
+        {"module": "off", "enabled": false},
+        {"module": "instances", "moduleInstances": [
+            {"name": "one"},
+            {"name": "two", "enabled": false}
+        ]}
+    ]
+}
+EOF
+    assert_eq "$(node "$ENABLED_DIR/configParser.js" isModuleEnabled on_by_default)" "true"
+    assert_eq "$(node "$ENABLED_DIR/configParser.js" isModuleEnabled off)" "false"
+    assert_eq "$(node "$ENABLED_DIR/configParser.js" isModuleInstanceEnabled instances one)" "true"
+    assert_eq "$(node "$ENABLED_DIR/configParser.js" isModuleInstanceEnabled instances two)" "false"
 }
 
 test_defaults() {
@@ -125,4 +188,7 @@ run_test "configParser: module args" test_logger_and_parser_args
 run_test "configParser: ntfy routing" test_ntfy_configs
 run_test "configParser: summary, priority, tags" test_summary_priority_tags
 run_test "configParser: error paths" test_config_errors
+run_test "configParser: default config fallback" test_default_config_fallback
+run_test "configParser: malformed config" test_malformed_config
+run_test "configParser: modules enabled by default" test_modules_enabled_by_default
 run_test "configParser: defaults" test_defaults
