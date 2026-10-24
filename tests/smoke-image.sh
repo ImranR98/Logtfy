@@ -63,8 +63,10 @@ echo "== required tools =="
 "$ENGINE" run --rm --entrypoint bash "$IMAGE" -c '
     set -e
     test -x /usr/bin/docker
+    test -x /usr/bin/journalctl
     test -x "$(command -v nc)"
     docker --version
+    journalctl --version | head -n 1
     jq --version
     node --version
     curl --version | head -n 1

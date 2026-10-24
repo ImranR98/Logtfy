@@ -3,13 +3,17 @@
 # that talk to a Docker socket work the same way.
 FROM docker:29-cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb AS docker-cli
 
-FROM node:lts-bookworm-slim@sha256:55fb5f5a527ea2c5c4a95f963e48ef90aa38c7b346054fdc8ee9957a2b55d205
+FROM node:lts-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
 
+# systemd provides /usr/bin/journalctl, used by the ssh_logins module (srv0
+# mounts the host journal). The previous get.docker.com install pulled it in
+# transitively; install it explicitly instead of relying on that side effect.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         curl \
         jq \
-        netcat-openbsd && \
+        netcat-openbsd \
+        systemd && \
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=docker-cli /usr/local/bin/docker /usr/bin/docker
