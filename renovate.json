@@ -14,25 +14,50 @@
   "packageRules": [
     {
       "description": "Docker base image and CLI digest refreshes",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["digest", "pinDigest"],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "pinDigest"
+      ],
       "groupName": "docker base images"
     },
     {
       "description": "Docker base image non-major version updates",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["minor", "patch", "pin"],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin"
+      ],
       "groupName": "docker base images (non-major)"
     },
     {
       "description": "GitHub Actions updates (non-major grouped)",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
       "groupName": "github actions"
     },
     {
       "description": "Auto-merge non-major updates only after the required test check and native auto-merge are enabled (squash is allowed on this repo)",
-      "matchUpdateTypes": ["minor", "patch", "pin", "pinDigest", "digest"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "pinDigest",
+        "digest"
+      ],
       "automerge": true,
       "platformAutomerge": true,
       "automergeType": "pr",
@@ -40,10 +65,15 @@
       "ignoreTests": false
     },
     {
-      "description": "Majors stay as separate PRs and are always manual: the gate cannot prove base-OS/runtime compatibility for a new major",
-      "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "platformAutomerge": false
+      "description": "Auto-merge major updates after the full test gate passes",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": true,
+      "platformAutomerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "ignoreTests": false
     }
   ]
 }
