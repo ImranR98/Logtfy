@@ -6,7 +6,7 @@ make_parser_dir() {
     PARSER_DIR="$(mktemp -d)"
     trap 'rm -rf "$PARSER_DIR"' EXIT
     cp "$ROOT/configParser.js" "$PARSER_DIR/configParser.js"
-    cp "$ROOT/tests/fixtures/config.json" "$PARSER_DIR/config.json"
+    cp "$ROOT/tests/fixtures/module-config.json" "$PARSER_DIR/config.json"
 }
 
 parser_action() {

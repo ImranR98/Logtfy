@@ -1,0 +1,71 @@
+{
+    "ntfyConfig": {
+        "configs": [
+            {
+                "id": "main",
+                "host": "https://ntfy.example",
+                "authHeader": "Bearer test",
+                "topicPrefix": "pre_"
+            },
+            {
+                "id": "fallback",
+                "host": "https://fallback.example",
+                "authHeader": null,
+                "topicPrefix": "fb_"
+            },
+            {
+                "id": "same",
+                "host": "https://same.example",
+                "authHeader": null
+            }
+        ],
+        "defaultConfig": "main",
+        "fallbackConfig": "fallback"
+    },
+    "modulesEnabledByDefault": false,
+    "crashNotificationInitialBackoffSeconds": 7,
+    "crashNotificationMaxBackoffSeconds": 42,
+    "moduleCustomization": [
+        {
+            "module": "alpha",
+            "enabled": true,
+            "loggerArg": "container-a",
+            "parserArg": "{\"regex\":\"x\"}",
+            "defaultPriority": "4",
+            "defaultTags": "a,b",
+            "moduleInstances": [
+                {
+                    "name": "one"
+                },
+                {
+                    "name": "two",
+                    "enabled": false,
+                    "ntfyTopic": "custom",
+                    "ntfyConfig": "same",
+                    "loggerArg": "container-two"
+                }
+            ]
+        },
+        {
+            "module": "beta",
+            "enabled": false
+        },
+        {
+            "module": "gamma",
+            "moduleInstances": [
+                {
+                    "name": "only"
+                }
+            ]
+        },
+        {
+            "module": "delta",
+            "enabled": true,
+            "ntfyFallback": "same"
+        },
+        {
+            "module": "broken",
+            "ntfyConfig": "missing"
+        }
+    ]
+}
