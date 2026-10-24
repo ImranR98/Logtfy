@@ -2,7 +2,6 @@
 set -e
 
 LOG_LINE="$1"
-EXTRA_DATA="$2"
 
 if echo "$LOG_LINE" | grep -qE "Found new"; then
     if echo "$LOG_LINE" | grep -qE '^time="'; then

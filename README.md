@@ -28,6 +28,30 @@ Simple log monitoring service that uses [ntfy](https://ntfy.sh) for alerts.
    - Alternatively, you can use the `Dockerfile` to build and run a Docker image.
    - You can also set it up to run as a systemd service using the example service config file `logtfy.service.example`.
 
+# Container image
+
+Images are built and published by GitHub Actions:
+
+- `ghcr.io/imranr98/logtfy:latest`
+- `ghcr.io/imranr98/logtfy:sha-<commit>`
+
+```bash
+docker pull ghcr.io/imranr98/logtfy:latest
+docker run --rm -v ./config.json:/logtfy/config.json ghcr.io/imranr98/logtfy:latest
+```
+
+The previous Docker Hub `imranrdev/logtfy` repository is deprecated and no longer updated.
+
+# Development
+
+- Run the test suite: `bash tests/run-tests.sh`
+- Lint shell scripts: `shellcheck --severity=warning $(find . -name '*.sh' -not -path './.git/*')`
+- Validate the Renovate config: `npx --yes -p renovate renovate-config-validator --strict renovate.json`
+
+The tests use fake Docker/journalctl/ntfy endpoints and do not need a Docker
+socket or a live notification server. A separate smoke script builds and runs
+the production image: `bash tests/smoke-image.sh ghcr.io/imranr98/logtfy:latest`.
+
 # Modules
 
 ## generic_logs

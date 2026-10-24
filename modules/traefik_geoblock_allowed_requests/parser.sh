@@ -9,7 +9,7 @@ if [ -n "$EXTRA_DATA" ]; then
     NUM_SECONDS_RECALL="$EXTRA_DATA"
 fi
 
-TEMP_LOGS_FILE=/tmp/logtfy/traefik_geoblock_allowed_requests
+TEMP_LOGS_FILE="${LOGTFY_STATE_DIR:-/tmp/logtfy}/traefik_geoblock_allowed_requests"
 
 if echo "$LOG_LINE" | grep -q -E 'GeoBlock:.+request allowed'; then
     if [ ! -f "$TEMP_LOGS_FILE" ]; then

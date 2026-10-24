@@ -2,7 +2,6 @@
 set -e
 
 LOG_LINE="$1"
-EXTRA_DATA="$2"
 
 if echo "$LOG_LINE" | grep -qE "Accepted (publickey|password|keyboard-interactive) for "; then
     SSH_USER="$(echo "$LOG_LINE" | sed -E 's/.*Accepted [a-z-]+ for ([^ ]+) from .*/\1/')"

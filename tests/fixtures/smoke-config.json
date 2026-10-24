@@ -1,0 +1,24 @@
+{
+    "ntfyConfig": {
+        "configs": [
+            {
+                "id": "smoke",
+                "host": "https://127.0.0.1:9",
+                "authHeader": null,
+                "topicPrefix": "smoke_"
+            }
+        ],
+        "defaultConfig": "smoke",
+        "fallbackConfig": null
+    },
+    "modulesEnabledByDefault": false,
+    "crashNotificationInitialBackoffSeconds": 60,
+    "crashNotificationMaxBackoffSeconds": 3600,
+    "moduleCustomization": [
+        {
+            "module": "mock_module",
+            "enabled": true,
+            "ntfyTopic": "mock"
+        }
+    ]
+}
