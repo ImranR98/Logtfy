@@ -65,14 +65,6 @@
       "ignoreTests": false
     },
     {
-      "description": "Majors stay as separate PRs and are always manual: the gate cannot prove base-OS/runtime compatibility for a new major",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": false,
-      "platformAutomerge": false
-    },
-    {
       "description": "Auto-merge major updates after the full test gate passes",
       "matchUpdateTypes": [
         "major"
