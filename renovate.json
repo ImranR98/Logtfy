@@ -4,13 +4,13 @@
     "config:recommended",
     "docker:pinDigests",
     "helpers:pinGitHubActionDigests",
+    "security:minimumReleaseAgeNpm",
     ":configMigration"
   ],
   "osvVulnerabilityAlerts": true,
   "dependencyDashboard": true,
   "rangeStrategy": "replace",
   "separateMajorMinor": true,
-  "automerge": false,
   "packageRules": [
     {
       "description": "Docker base image and CLI digest refreshes",
@@ -48,32 +48,6 @@
         "digest"
       ],
       "groupName": "github actions"
-    },
-    {
-      "description": "Auto-merge non-major updates only after the required test check and native auto-merge are enabled (squash is allowed on this repo)",
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "pinDigest",
-        "digest"
-      ],
-      "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash",
-      "ignoreTests": false
-    },
-    {
-      "description": "Auto-merge major updates after the full test gate passes",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": true,
-      "platformAutomerge": true,
-      "automergeType": "pr",
-      "automergeStrategy": "squash",
-      "ignoreTests": false
     }
   ]
 }
