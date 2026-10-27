@@ -49,5 +49,6 @@
       ],
       "groupName": "github actions"
     }
-  ]
+  ],
+  "minimumReleaseAge": "3 days"
 }
