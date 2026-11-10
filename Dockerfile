@@ -1,9 +1,9 @@
 # Docker CLI is copied from the official image instead of piping get.docker.com
 # into a shell. The CLI is a static binary and honours DOCKER_HOST, so modules
 # that talk to a Docker socket work the same way.
-FROM docker:29-cli@sha256:5e6baf67325a79f64ed3bed6863954d5e05d0f3d4e57cbdb14809346814bbfdb AS docker-cli
+FROM docker:29-cli@sha256:2357639ad1ea7d0194134bf3292622fd4e562483966ed674e5d7c945b5f3b28d AS docker-cli
 
-FROM node:lts-trixie-slim@sha256:43b9ba1142b8dcf33fa8f922ca1be85714adc444e0586c7cf7726daaeabc1bea
+FROM node:lts-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
 
 # systemd provides /usr/bin/journalctl, used by the ssh_logins module (srv0
 # mounts the host journal). The previous get.docker.com install pulled it in
