@@ -3,7 +3,7 @@
 # that talk to a Docker socket work the same way.
 FROM docker:29-cli@sha256:2357639ad1ea7d0194134bf3292622fd4e562483966ed674e5d7c945b5f3b28d AS docker-cli
 
-FROM node:lts-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072
+FROM node:lts-trixie-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc
 
 # systemd provides /usr/bin/journalctl, used by the ssh_logins module (srv0
 # mounts the host journal). The previous get.docker.com install pulled it in
