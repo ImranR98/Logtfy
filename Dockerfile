@@ -1,7 +1,7 @@
 # Docker CLI is copied from the official image instead of piping get.docker.com
 # into a shell. The CLI is a static binary and honours DOCKER_HOST, so modules
 # that talk to a Docker socket work the same way.
-FROM docker:29-cli@sha256:5a7af0dcb0e46c803efe9b45371dd21cb500e5b4453250394ac6f06d49b6e6f1 AS docker-cli
+FROM docker:29-cli@sha256:34507eb5069d8be82c95dd3b6987d4250fd5fee49b82e2509b7d7a7030740d6d AS docker-cli
 
 FROM node:lts-trixie-slim@sha256:e6bedef217677b276c591795e169840edd9096dbf13f29df8ef8d1856b8820bc
 
